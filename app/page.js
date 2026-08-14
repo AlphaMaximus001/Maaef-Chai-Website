@@ -426,7 +426,7 @@ function MusicPlayer() {
   const shuffledOnce = useRef(false);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [track, setTrack] = useState({ song: "", artist: "" });
+  const [track, setTrack] = useState({ song: "", artist: "", videoId: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -456,7 +456,10 @@ function MusicPlayer() {
               setPlaying(true);
               try {
                 const d = playerRef.current.getVideoData();
-                setTrack(parseSongArtist(d?.title, d?.author));
+                setTrack({
+                  ...parseSongArtist(d?.title, d?.author),
+                  videoId: d?.video_id || "",
+                });
               } catch (err) {}
               if (!shuffledOnce.current) {
                 shuffledOnce.current = true;
@@ -521,10 +524,17 @@ function MusicPlayer() {
           </>
         )}
         <button
-          className="player-btn"
+          className={`player-btn${track.videoId ? " has-art" : ""}`}
           onClick={toggle}
           disabled={!ready}
           aria-label={playing ? "pause" : "play"}
+          style={
+            track.videoId
+              ? {
+                  backgroundImage: `url(https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg)`,
+                }
+              : undefined
+          }
         >
           {playing ? "❚❚" : "▶"}
         </button>
@@ -950,7 +960,7 @@ export default function Page() {
         }
         .player-btn-wrap { position: relative; flex-shrink: 0; }
         .player-btn {
-          width: 36px; height: 36px;
+          width: 40px; height: 40px;
           border-radius: 50%;
           border: none;
           background: ${AMBER};
@@ -962,6 +972,13 @@ export default function Page() {
           font: inherit;
           font-size: 13px;
           transition: transform 0.2s ease;
+        }
+        .player-btn.has-art {
+          background-size: cover;
+          background-position: center;
+          color: ${PAPER};
+          text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+          box-shadow: inset 0 0 0 40px rgba(23,18,14,0.30), 0 0 0 1.5px rgba(232,163,61,0.85);
         }
         .player-btn:hover:enabled { transform: scale(1.06); }
         .player-btn:disabled { opacity: 0.5; cursor: default; }
