@@ -513,9 +513,28 @@ function MusicPlayer() {
     }
   }
 
+  function skip(dir) {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      if (dir > 0) p.nextVideo();
+      else p.previousVideo();
+    } catch (e) {}
+  }
+
   return (
     <div className="player">
       <div ref={containerRef} style={{ width: 1, height: 1, overflow: "hidden" }} />
+      <button
+        className="pbtn-side"
+        onClick={() => skip(-1)}
+        disabled={!ready}
+        aria-label="pichla gaana"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 6h2v12H6zM20 6l-10 6 10 6z" />
+        </svg>
+      </button>
       <div className="player-btn-wrap">
         {playing && (
           <>
@@ -524,28 +543,44 @@ function MusicPlayer() {
           </>
         )}
         <button
-          className={`player-btn${track.videoId ? " has-art" : ""}`}
+          className="player-btn"
           onClick={toggle}
           disabled={!ready}
           aria-label={playing ? "pause" : "play"}
-          style={
-            track.videoId
-              ? {
-                  backgroundImage: `url(https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg)`,
-                }
-              : undefined
-          }
         >
           {playing ? "❚❚" : "▶"}
         </button>
       </div>
-      <div style={{ minWidth: 0 }}>
+      <button
+        className="pbtn-side"
+        onClick={() => skip(1)}
+        disabled={!ready}
+        aria-label="agla gaana"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16 6h2v12h-2zM4 6l10 6-10 6z" />
+        </svg>
+      </button>
+      <div className="player-text">
         <div className="player-song">{track.song || "gaane suno"}</div>
         <div className="player-artist">
           {track.artist
             ? `${track.artist} · via YouTube`
             : "via YouTube — plays go to the artist"}
         </div>
+      </div>
+      <div
+        className={`player-art${playing ? " spin" : ""}`}
+        aria-hidden="true"
+        style={
+          track.videoId
+            ? {
+                backgroundImage: `url(https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg)`,
+              }
+            : undefined
+        }
+      >
+        {!track.videoId && "♪"}
       </div>
     </div>
   );
@@ -925,18 +960,18 @@ export default function Page() {
           z-index: 30;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           background: rgba(23,18,14,0.55);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(237,226,203,0.15);
           border-radius: 999px;
-          padding: 8px 18px 8px 8px;
-          max-width: min(420px, 84vw);
+          padding: 8px 8px 8px 10px;
+          width: min(548px, 92vw);
         }
         .player-btn-wrap { position: relative; flex-shrink: 0; }
         .player-btn {
-          width: 40px; height: 40px;
+          width: 42px; height: 42px;
           border-radius: 50%;
           border: none;
           background: ${AMBER};
@@ -949,15 +984,46 @@ export default function Page() {
           font-size: 13px;
           transition: transform 0.2s ease;
         }
-        .player-btn.has-art {
-          background-size: cover;
-          background-position: center;
-          color: ${PAPER};
-          text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-          box-shadow: inset 0 0 0 40px rgba(23,18,14,0.30), 0 0 0 1.5px rgba(232,163,61,0.85);
-        }
         .player-btn:hover:enabled { transform: scale(1.06); }
         .player-btn:disabled { opacity: 0.5; cursor: default; }
+
+        .pbtn-side {
+          width: 32px; height: 32px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          border: none;
+          background: transparent;
+          color: rgba(237,226,203,0.8);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font: inherit;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .pbtn-side:hover:enabled { background: rgba(237,226,203,0.12); color: ${PAPER}; }
+        .pbtn-side:disabled { opacity: 0.4; cursor: default; }
+
+        .player-text { flex: 1; min-width: 0; }
+
+        .player-art {
+          width: 54px; height: 54px;
+          flex-shrink: 0;
+          margin-left: auto;
+          border-radius: 50%;
+          background-color: rgba(237,226,203,0.08);
+          background-size: cover;
+          background-position: center;
+          border: 1.5px solid rgba(232,163,61,0.85);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(237,226,203,0.6);
+          font-size: 17px;
+        }
+        .player-art.spin { animation: artSpin 9s linear infinite; }
+        @keyframes artSpin { to { transform: rotate(360deg); } }
         .player-song {
           font-family: 'Familjen Grotesk', sans-serif;
           font-weight: 600;
@@ -1018,6 +1084,8 @@ export default function Page() {
         @media (max-width: 640px) {
           .top-bar { padding: 12px !important; }
           .pill { font-size: 11.5px; padding: 5px 9px; }
+          .player-art { width: 46px; height: 46px; }
+          .player-btn { width: 38px; height: 38px; }
           .slip { padding: 10px 12px 8px 20px; max-width: 160px; }
           .stall-info { left: 16px; bottom: 88px; }
         }
@@ -1031,7 +1099,7 @@ export default function Page() {
 
         @media (prefers-reduced-motion: reduce) {
           .kb, .rain-layer, .rain-flash, .wash, .scene-in,
-          .stall-info, .steam { animation: none !important; }
+          .stall-info, .steam, .player-art.spin { animation: none !important; }
           .wash { opacity: 0; }
           * { transition-duration: 0.01ms !important; }
         }
