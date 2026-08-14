@@ -806,30 +806,6 @@ export default function Page() {
 
         /* ---------- chrome ---------- */
 
-        .masthead {
-          position: fixed;
-          top: 14px; left: 50%;
-          transform: translateX(-50%);
-          z-index: 19;
-          text-align: center;
-          pointer-events: none;
-        }
-        .masthead-title {
-          font-family: 'Rozha One', serif;
-          font-size: 27px;
-          color: ${PAPER};
-          text-shadow: 0 2px 12px rgba(0,0,0,0.6);
-          letter-spacing: 0.02em;
-          line-height: 1.1;
-        }
-        .masthead-sub {
-          font-family: 'Kalam', cursive;
-          font-size: 12px;
-          color: rgba(237,226,203,0.62);
-          margin-top: 1px;
-          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-        }
-
         .slip {
           position: relative;
           font-family: 'Kalam', cursive;
@@ -1039,9 +1015,6 @@ export default function Page() {
 
         /* ---------- responsive ---------- */
 
-        @media (max-width: 860px) {
-          .masthead { display: none; }
-        }
         @media (max-width: 640px) {
           .top-bar { padding: 12px !important; }
           .pill { font-size: 11.5px; padding: 5px 9px; }
@@ -1102,11 +1075,6 @@ export default function Page() {
             )}
           </>
         )}
-      </div>
-
-      <div className="masthead" aria-hidden="true">
-        <div className="masthead-title">नौ टपरी</div>
-        <div className="masthead-sub">chai lagao, gaane suno</div>
       </div>
 
       <div
