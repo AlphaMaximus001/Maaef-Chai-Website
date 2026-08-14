@@ -69,12 +69,77 @@ const TAPRIS = [
   },
 ];
 
+/*
+ * Each state mixes the day and night plates (night = opacity of the night
+ * plate over the day plate) and stacks a colour-grade + a light-direction
+ * overlay on top, so time shifts read as light changing, not a filter swap.
+ */
 const STATES = [
-  { key: "subah", label: "सुबह", plate: "day", filter: "brightness(1.04) saturate(0.96) sepia(0.06) hue-rotate(-6deg)" },
-  { key: "dopahar", label: "दोपहर", plate: "day", filter: "brightness(1.1) contrast(1.03) saturate(1.05)" },
-  { key: "shaam", label: "शाम", plate: "day", filter: "brightness(0.92) saturate(1.15) sepia(0.18) hue-rotate(-8deg)" },
-  { key: "raat", label: "रात", plate: "night", filter: "brightness(0.98) saturate(1.05) contrast(1.05)" },
-  { key: "baarish", label: "बारिश", plate: "day", filter: "brightness(0.8) contrast(0.94) saturate(0.55) hue-rotate(4deg)" },
+  {
+    key: "subah",
+    label: "सुबह",
+    hint: "morning",
+    night: 0,
+    dayFilter: "brightness(1.04) saturate(0.94)",
+    nightFilter: "none",
+    tint: "linear-gradient(180deg, rgba(255,190,150,0.28), rgba(255,206,160,0.10) 45%, rgba(0,0,0,0) 70%)",
+    tintBlend: "soft-light",
+    light:
+      "radial-gradient(ellipse 60% 45% at 16% 18%, rgba(255,210,160,0.35), rgba(255,210,160,0) 70%)",
+    wash: "radial-gradient(circle at 50% 35%, rgba(255,198,140,0.55), rgba(255,198,140,0) 72%)",
+  },
+  {
+    key: "dopahar",
+    label: "दोपहर",
+    hint: "afternoon",
+    night: 0,
+    dayFilter: "brightness(1.09) contrast(1.05) saturate(1.05)",
+    nightFilter: "none",
+    tint: "linear-gradient(180deg, rgba(255,250,235,0.14), rgba(0,0,0,0) 55%)",
+    tintBlend: "soft-light",
+    light:
+      "radial-gradient(ellipse 70% 40% at 50% -10%, rgba(255,255,245,0.25), rgba(255,255,245,0) 60%)",
+    wash: "radial-gradient(circle at 50% 35%, rgba(255,250,232,0.6), rgba(255,250,232,0) 72%)",
+  },
+  {
+    key: "shaam",
+    label: "शाम",
+    hint: "evening",
+    night: 0.5,
+    dayFilter: "brightness(0.9) saturate(1.15) sepia(0.15) hue-rotate(-8deg)",
+    nightFilter: "brightness(1.05)",
+    tint: "linear-gradient(195deg, rgba(226,110,52,0.30), rgba(150,64,84,0.22) 55%, rgba(70,42,66,0.26))",
+    tintBlend: "multiply",
+    light:
+      "radial-gradient(ellipse 55% 40% at 80% 12%, rgba(255,150,70,0.42), rgba(255,150,70,0) 70%)",
+    wash: "radial-gradient(circle at 50% 35%, rgba(238,124,58,0.55), rgba(238,124,58,0) 72%)",
+  },
+  {
+    key: "raat",
+    label: "रात",
+    hint: "night",
+    night: 1,
+    dayFilter: "none",
+    nightFilter: "contrast(1.04)",
+    tint: "linear-gradient(180deg, rgba(16,26,54,0.25), rgba(16,26,54,0.10) 55%, rgba(10,16,36,0.20))",
+    tintBlend: "multiply",
+    light:
+      "radial-gradient(ellipse 60% 50% at 50% 58%, rgba(255,176,84,0.14), rgba(255,176,84,0) 70%)",
+    wash: "radial-gradient(circle at 50% 35%, rgba(34,48,92,0.6), rgba(34,48,92,0) 72%)",
+  },
+  {
+    key: "baarish",
+    label: "बारिश",
+    hint: "rain",
+    night: 0.3,
+    dayFilter: "brightness(0.72) saturate(0.45) contrast(0.96) hue-rotate(6deg)",
+    nightFilter: "brightness(0.9) saturate(0.7)",
+    tint: "linear-gradient(180deg, rgba(70,88,104,0.44), rgba(70,88,104,0.28) 55%, rgba(60,74,88,0.38))",
+    tintBlend: "multiply",
+    light:
+      "radial-gradient(ellipse 80% 35% at 50% 0%, rgba(190,210,225,0.12), rgba(190,210,225,0) 65%)",
+    wash: "radial-gradient(circle at 50% 35%, rgba(112,132,150,0.55), rgba(112,132,150,0) 72%)",
+  },
 ];
 
 const PLAYLIST_ID = "PLJwtI1xb0Z_YSjwpW6zQVQkr6TWb_7GRP";
@@ -154,10 +219,10 @@ function Placeholder({ tapri, plate }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* image with graceful fallback to placeholder                            */
+/* one plate (day or night) with graceful fallback                        */
 /* ---------------------------------------------------------------------- */
 
-function Plate({ tapri, plate, active, filter }) {
+function Plate({ tapri, plate, opacity, filter }) {
   const [broken, setBroken] = useState(false);
   const src = `/tapris/${tapri.id}-${plate}.jpeg`;
 
@@ -166,33 +231,39 @@ function Plate({ tapri, plate, active, filter }) {
   }, [src]);
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        opacity: active ? 1 : 0,
-        transition: "opacity 1.4s ease",
-        filter,
-      }}
-      aria-hidden={!active}
-    >
+    <div className="plate" style={{ opacity, filter }} aria-hidden={opacity === 0}>
       {broken ? (
         <Placeholder tapri={tapri} plate={plate} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          onError={() => setBroken(true)}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center",
-            display: "block",
-          }}
-        />
+        <img src={src} alt="" onError={() => setBroken(true)} />
       )}
+    </div>
+  );
+}
+
+/* a scene = the day + night plates of one tapri, mixed per time state */
+function Scene({ tapri, state, entering }) {
+  return (
+    <div className={`scene${entering ? " scene-in" : ""}`}>
+      <Plate tapri={tapri} plate="day" opacity={1} filter={state.dayFilter} />
+      <Plate tapri={tapri} plate="night" opacity={state.night} filter={state.nightFilter} />
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* rain — three parallax layers of falling streaks + mist + far lightning */
+/* ---------------------------------------------------------------------- */
+
+function RainBlock({ on }) {
+  return (
+    <div className={`rainblock${on ? " on" : ""}`} aria-hidden="true">
+      <div className="rain-layer rain-far" />
+      <div className="rain-layer rain-mid" />
+      <div className="rain-layer rain-near" />
+      <div className="rain-mist" />
+      <div className="rain-flash" />
     </div>
   );
 }
@@ -236,8 +307,9 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
           display: "flex",
           flexDirection: "column",
           backgroundImage:
-            "repeating-linear-gradient(rgba(23,18,14,0.09) 0 1px, transparent 1px 34px)",
-          backgroundPositionY: "58px",
+            "linear-gradient(90deg, rgba(0,0,0,0) 40px, rgba(180,85,47,0.45) 40px, rgba(180,85,47,0.45) 41px, rgba(0,0,0,0) 41px)," +
+            "repeating-linear-gradient(rgba(23,18,14,0.09) 0 1px, rgba(0,0,0,0) 1px 34px)",
+          backgroundPositionY: "0, 58px",
         }}
       >
         <div
@@ -345,55 +417,6 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* time state pills                                                       */
-/* ---------------------------------------------------------------------- */
-
-function StatePills({ current, onChange }) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="waqt"
-      style={{
-        display: "flex",
-        gap: 6,
-        background: "rgba(23,18,14,0.45)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        padding: 5,
-        borderRadius: 999,
-        border: "1px solid rgba(237,226,203,0.15)",
-      }}
-    >
-      {STATES.map((s) => {
-        const active = s.key === current;
-        return (
-          <button
-            key={s.key}
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(s.key)}
-            style={{
-              font: "inherit",
-              fontFamily: "'Familjen Grotesk', sans-serif",
-              fontSize: 13,
-              padding: "6px 12px",
-              borderRadius: 999,
-              border: "none",
-              cursor: "pointer",
-              color: active ? INK : PAPER,
-              background: active ? AMBER : "transparent",
-              transition: "background 0.25s ease, color 0.25s ease",
-            }}
-          >
-            {s.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------- */
 /* music player                                                           */
 /* ---------------------------------------------------------------------- */
 
@@ -488,74 +511,30 @@ function MusicPlayer() {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 18,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 30,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        background: "rgba(23,18,14,0.55)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        border: "1px solid rgba(237,226,203,0.15)",
-        borderRadius: 999,
-        padding: "8px 16px 8px 8px",
-        maxWidth: "min(420px, 84vw)",
-      }}
-    >
+    <div className="player">
       <div ref={containerRef} style={{ width: 1, height: 1, overflow: "hidden" }} />
-      <button
-        onClick={toggle}
-        disabled={!ready}
-        aria-label={playing ? "pause" : "play"}
-        style={{
-          width: 34,
-          height: 34,
-          flexShrink: 0,
-          borderRadius: "50%",
-          border: "none",
-          background: AMBER,
-          color: INK,
-          cursor: ready ? "pointer" : "default",
-          opacity: ready ? 1 : 0.5,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          font: "inherit",
-        }}
-      >
-        {playing ? "❚❚" : "▶"}
-      </button>
+      <div className="player-btn-wrap">
+        {playing && (
+          <>
+            <span className="steam steam-1" />
+            <span className="steam steam-2" />
+          </>
+        )}
+        <button
+          className="player-btn"
+          onClick={toggle}
+          disabled={!ready}
+          aria-label={playing ? "pause" : "play"}
+        >
+          {playing ? "❚❚" : "▶"}
+        </button>
+      </div>
       <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontFamily: "'Familjen Grotesk', sans-serif",
-            fontWeight: 600,
-            fontSize: 12.5,
-            color: PAPER,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {track.song || "gaane suno"}
-        </div>
-        <div
-          style={{
-            fontFamily: "'Familjen Grotesk', sans-serif",
-            fontSize: 10.5,
-            color: STEEL,
-            marginTop: 1,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {track.artist ? `${track.artist} · via YouTube` : "via YouTube — plays go to the artist"}
+        <div className="player-song">{track.song || "gaane suno"}</div>
+        <div className="player-artist">
+          {track.artist
+            ? `${track.artist} · via YouTube`
+            : "via YouTube — plays go to the artist"}
         </div>
       </div>
     </div>
@@ -568,7 +547,9 @@ function MusicPlayer() {
 
 export default function Page() {
   const [activeId, setActiveId] = useState(TAPRIS[0].id);
+  const [prevId, setPrevId] = useState(null);
   const [stateKey, setStateKey] = useState("dopahar");
+  const [washKey, setWashKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -595,21 +576,51 @@ export default function Page() {
     } catch (e) {}
   }, [activeId, hydrated]);
 
+  /* preload every plate once idle, so tapri switches crossfade cleanly */
+  useEffect(() => {
+    if (!hydrated) return;
+    const t = setTimeout(() => {
+      TAPRIS.forEach((tp) => {
+        ["day", "night"].forEach((p) => {
+          const img = new Image();
+          img.src = `/tapris/${tp.id}-${p}.jpeg`;
+        });
+      });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [hydrated]);
+
+  /* drop the outgoing scene once the crossfade is done */
+  useEffect(() => {
+    if (prevId == null) return;
+    const t = setTimeout(() => setPrevId(null), 1200);
+    return () => clearTimeout(t);
+  }, [prevId, activeId]);
+
   function changeState(key) {
+    if (key === stateKey) return;
     setStateKey(key);
+    setWashKey((k) => k + 1);
     try {
       localStorage.setItem(LS_STATE, key);
     } catch (e) {}
   }
 
   function selectTapri(id) {
-    setActiveId(id);
+    if (id !== activeId) {
+      setPrevId(activeId);
+      setActiveId(id);
+    }
     setDrawerOpen(false);
   }
 
   const active = useMemo(
     () => TAPRIS.find((t) => t.id === activeId) || TAPRIS[0],
     [activeId]
+  );
+  const prev = useMemo(
+    () => (prevId ? TAPRIS.find((t) => t.id === prevId) : null),
+    [prevId]
   );
   const state = useMemo(
     () => STATES.find((s) => s.key === stateKey) || STATES[1],
@@ -641,6 +652,130 @@ export default function Page() {
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: ${INK}; }
 
+        /* ---------- scene ---------- */
+
+        .stage { position: absolute; inset: 0; }
+
+        .kb {
+          position: absolute; inset: 0;
+          animation: kenburns 55s ease-in-out infinite alternate;
+          transform-origin: 50% 60%;
+        }
+        @keyframes kenburns {
+          from { transform: scale(1.02); }
+          to   { transform: scale(1.065); }
+        }
+
+        .scene { position: absolute; inset: 0; }
+        .scene-in { animation: sceneIn 1.1s ease both; }
+        @keyframes sceneIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .plate {
+          position: absolute; inset: 0;
+          transition: opacity 2.4s ease, filter 2.4s ease;
+        }
+        .plate img {
+          width: 100%; height: 100%;
+          object-fit: cover; object-position: center;
+          display: block;
+        }
+
+        .grade {
+          position: absolute; inset: 0;
+          pointer-events: none;
+          transition: opacity 2.4s ease;
+        }
+
+        .scrim {
+          position: absolute; left: 0; right: 0; bottom: 0;
+          height: 34%;
+          background: linear-gradient(180deg, rgba(11,9,6,0), rgba(11,9,6,0.52));
+          pointer-events: none;
+        }
+
+        .wash {
+          position: absolute; inset: 0;
+          pointer-events: none;
+          opacity: 0;
+          animation: washAnim 1.5s ease-in-out forwards;
+        }
+        @keyframes washAnim {
+          0% { opacity: 0; }
+          30% { opacity: 0.85; }
+          100% { opacity: 0; }
+        }
+
+        /* ---------- rain ---------- */
+
+        .rainblock {
+          position: absolute; inset: 0;
+          overflow: hidden;
+          opacity: 0;
+          transition: opacity 1.4s ease;
+          pointer-events: none;
+        }
+        .rainblock.on { opacity: 1; }
+
+        .rain-layer {
+          position: absolute; inset: -30%;
+          transform: rotate(11deg);
+          background-repeat: repeat;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-play-state: paused;
+        }
+        .rainblock.on .rain-layer { animation-play-state: running; }
+
+        .rain-far {
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.32' stroke-width='1' stroke-linecap='round'><line x1='9' y1='14' x2='9' y2='34'/><line x1='30' y1='78' x2='30' y2='98'/><line x1='52' y1='36' x2='52' y2='56'/><line x1='71' y1='6' x2='71' y2='26'/><line x1='90' y1='64' x2='90' y2='84'/><line x1='108' y1='20' x2='108' y2='40'/><line x1='121' y1='92' x2='121' y2='112'/><line x1='22' y1='104' x2='22' y2='124'/><line x1='44' y1='4' x2='44' y2='24'/><line x1='62' y1='88' x2='62' y2='108'/></g></svg>");
+          background-size: 84px 84px;
+          opacity: 0.5;
+          animation-name: rainfall-far;
+          animation-duration: 1.25s;
+        }
+        @keyframes rainfall-far { to { background-position: 0 84px; } }
+
+        .rain-mid {
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.45' stroke-width='1.6' stroke-linecap='round'><line x1='14' y1='18' x2='14' y2='50'/><line x1='38' y1='70' x2='38' y2='102'/><line x1='60' y1='8' x2='60' y2='40'/><line x1='82' y1='52' x2='82' y2='84'/><line x1='103' y1='14' x2='103' y2='46'/><line x1='118' y1='76' x2='118' y2='108'/><line x1='26' y1='90' x2='26' y2='122'/></g></svg>");
+          background-size: 128px 128px;
+          opacity: 0.55;
+          animation-name: rainfall-mid;
+          animation-duration: 0.78s;
+        }
+        @keyframes rainfall-mid { to { background-position: 0 128px; } }
+
+        .rain-near {
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.42' stroke-width='2.2' stroke-linecap='round'><line x1='18' y1='8' x2='18' y2='64'/><line x1='52' y1='58' x2='52' y2='114'/><line x1='86' y1='14' x2='86' y2='70'/><line x1='112' y1='64' x2='112' y2='120'/><line x1='34' y1='84' x2='34' y2='124'/></g></svg>");
+          background-size: 190px 190px;
+          opacity: 0.6;
+          animation-name: rainfall-near;
+          animation-duration: 0.48s;
+        }
+        @keyframes rainfall-near { to { background-position: 0 190px; } }
+
+        .rain-mist {
+          position: absolute; inset: 0;
+          background:
+            linear-gradient(180deg, rgba(200,214,224,0.16), rgba(200,214,224,0.05) 40%, rgba(200,214,224,0) 65%),
+            radial-gradient(ellipse 90% 30% at 50% 105%, rgba(150,170,185,0.14), rgba(150,170,185,0) 70%);
+        }
+
+        .rain-flash {
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse 70% 45% at 68% -5%, rgba(220,232,245,0.9), rgba(220,232,245,0) 62%);
+          opacity: 0;
+          animation: lightning 13s linear infinite;
+        }
+        @keyframes lightning {
+          0%, 91.5%, 100% { opacity: 0; }
+          92% { opacity: 0.10; }
+          92.7% { opacity: 0.02; }
+          93.4% { opacity: 0.13; }
+          94.5% { opacity: 0; }
+        }
+
+        /* ---------- grain + vignette ---------- */
+
         .grain::after {
           content: "";
           position: absolute;
@@ -656,66 +791,305 @@ export default function Page() {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%);
+          background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.55) 100%);
         }
 
-        .rain-overlay {
-          position: absolute;
-          inset: 0;
+        /* ---------- chrome ---------- */
+
+        .masthead {
+          position: fixed;
+          top: 14px; left: 50%;
+          transform: translateX(-50%);
+          z-index: 19;
+          text-align: center;
           pointer-events: none;
-          opacity: 0;
-          transition: opacity 1s ease;
-          background-image: repeating-linear-gradient(
-            100deg,
-            rgba(237,226,203,0.12) 0px,
-            rgba(237,226,203,0.12) 1px,
-            transparent 1px,
-            transparent 12px
-          );
-          background-size: 140% 140%;
-          animation: rainfall 0.35s linear infinite;
         }
-        .rain-overlay.on { opacity: 1; }
-
-        @keyframes rainfall {
-          0% { background-position: 0 0; }
-          100% { background-position: -40px 90px; }
+        .masthead-title {
+          font-family: 'Rozha One', serif;
+          font-size: 27px;
+          color: ${PAPER};
+          text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+          letter-spacing: 0.02em;
+          line-height: 1.1;
+        }
+        .masthead-sub {
+          font-family: 'Kalam', cursive;
+          font-size: 12px;
+          color: rgba(237,226,203,0.62);
+          margin-top: 1px;
+          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          .rain-overlay { animation: none; }
-          * { transition-duration: 0.01ms !important; }
+        .slip {
+          position: relative;
+          font-family: 'Kalam', cursive;
+          background: ${PAPER};
+          background-image:
+            linear-gradient(90deg, rgba(0,0,0,0) 13px, rgba(180,85,47,0.55) 13px, rgba(180,85,47,0.55) 14.5px, rgba(0,0,0,0) 14.5px),
+            repeating-linear-gradient(rgba(23,18,14,0) 0 15px, rgba(23,18,14,0.08) 15px 16px);
+          color: ${INK};
+          border: none;
+          border-radius: 3px 7px 7px 3px;
+          padding: 12px 16px 10px 24px;
+          cursor: pointer;
+          text-align: left;
+          transform: rotate(-1.6deg);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+          transition: transform 0.25s ease;
+          max-width: 230px;
+          font: inherit;
+          font-family: 'Kalam', cursive;
+        }
+        .slip:hover { transform: rotate(0deg) scale(1.02); }
+        .slip::before {
+          content: "";
+          position: absolute;
+          top: 5px; left: 50%;
+          width: 5px; height: 5px;
+          margin-left: -3px;
+          border-radius: 50%;
+          background: rgba(23,18,14,0.5);
+          box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
+        }
+        .slip-k {
+          display: block;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 10px;
+          color: #7a6a52;
+          margin-bottom: 1px;
+        }
+        .slip-name {
+          display: block;
+          font-size: 15px;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        @media (max-width: 640px) {
-          .top-bar { padding: 12px !important; }
-          .register-tab { padding: 8px 12px !important; font-size: 12px !important; }
+        .pills {
+          display: flex;
+          gap: 5px;
+          background: rgba(23,18,14,0.5);
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          padding: 5px;
+          border-radius: 999px;
+          border: 1px solid rgba(237,226,203,0.14);
         }
+        .pill {
+          font: inherit;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 13px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: none;
+          cursor: pointer;
+          color: ${PAPER};
+          background: transparent;
+          transition: background 0.3s ease, color 0.3s ease;
+        }
+        .pill:hover { background: rgba(237,226,203,0.1); }
+        .pill.on { background: ${AMBER}; color: ${INK}; }
+        .pill.on:hover { background: ${AMBER}; }
+
+        .stall-info {
+          position: fixed;
+          left: 22px;
+          bottom: 92px;
+          z-index: 20;
+          max-width: min(520px, 78vw);
+          pointer-events: none;
+          animation: fadeUp 0.9s ease both;
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .stall-name {
+          font-family: 'Rozha One', serif;
+          font-size: clamp(26px, 4.2vw, 42px);
+          line-height: 1.08;
+          color: ${PAPER};
+          text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+        }
+        .stall-area {
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 11px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(237,226,203,0.72);
+          margin-top: 6px;
+          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+        }
+        .stall-note {
+          font-family: 'Kalam', cursive;
+          font-size: 14px;
+          color: rgba(237,226,203,0.78);
+          margin-top: 4px;
+          max-width: 400px;
+          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+        }
+
+        .player {
+          position: fixed;
+          bottom: 18px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 30;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(23,18,14,0.55);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(237,226,203,0.15);
+          border-radius: 999px;
+          padding: 8px 18px 8px 8px;
+          max-width: min(420px, 84vw);
+        }
+        .player-btn-wrap { position: relative; flex-shrink: 0; }
+        .player-btn {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          border: none;
+          background: ${AMBER};
+          color: ${INK};
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font: inherit;
+          font-size: 13px;
+          transition: transform 0.2s ease;
+        }
+        .player-btn:hover:enabled { transform: scale(1.06); }
+        .player-btn:disabled { opacity: 0.5; cursor: default; }
+        .player-song {
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-weight: 600;
+          font-size: 12.5px;
+          color: ${PAPER};
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .player-artist {
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 10.5px;
+          color: ${STEEL};
+          margin-top: 1px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .steam {
+          position: absolute;
+          left: 50%;
+          bottom: calc(100% - 4px);
+          width: 5px; height: 14px;
+          border-radius: 50%;
+          background: rgba(237,226,203,0.4);
+          filter: blur(2.5px);
+          pointer-events: none;
+        }
+        .steam-1 { animation: steamRise 2.8s ease-out infinite; }
+        .steam-2 { animation: steamRise 3.6s ease-out 1.4s infinite; margin-left: -7px; }
+        @keyframes steamRise {
+          0%   { opacity: 0; transform: translate(-50%, 4px) scale(0.7); }
+          30%  { opacity: 0.55; }
+          100% { opacity: 0; transform: translate(calc(-50% + 6px), -18px) scale(1.35); }
+        }
+
+        .credit {
+          position: fixed;
+          right: 18px;
+          bottom: 18px;
+          z-index: 20;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 10px;
+          color: rgba(147,160,166,0.6);
+          text-decoration: none;
+          letter-spacing: 0.06em;
+        }
+        .credit:hover { color: rgba(237,226,203,0.8); }
 
         button:focus-visible, [role="radio"]:focus-visible {
           outline: 2px solid ${AMBER};
           outline-offset: 2px;
         }
+
+        /* ---------- responsive ---------- */
+
+        @media (max-width: 860px) {
+          .masthead { display: none; }
+        }
+        @media (max-width: 640px) {
+          .top-bar { padding: 12px !important; }
+          .pill { font-size: 11.5px; padding: 5px 9px; }
+          .slip { padding: 10px 12px 8px 20px; max-width: 160px; }
+          .stall-info { left: 16px; bottom: 88px; }
+        }
+        @media (max-width: 560px) {
+          .slip-name { display: none; }
+          .slip { max-width: none; }
+          .credit { display: none; }
+        }
+
+        /* ---------- reduced motion ---------- */
+
+        @media (prefers-reduced-motion: reduce) {
+          .kb, .rain-layer, .rain-flash, .wash, .scene-in,
+          .stall-info, .steam { animation: none !important; }
+          .wash { opacity: 0; }
+          * { transition-duration: 0.01ms !important; }
+        }
       `}</style>
 
-      <div className="grain vignette" style={{ position: "absolute", inset: 0 }}>
+      <div className="stage grain vignette">
         {hydrated && (
           <>
-            <Plate
-              tapri={active}
-              plate="day"
-              active={state.plate === "day"}
-              filter={state.plate === "day" ? state.filter : "none"}
-            />
-            <Plate
-              tapri={active}
-              plate="night"
-              active={state.plate === "night"}
-              filter={state.plate === "night" ? state.filter : "none"}
-            />
+            <div className="kb">
+              {prev && <Scene tapri={prev} state={state} />}
+              <Scene key={active.id} tapri={active} state={state} entering={!!prev} />
+            </div>
+
+            {STATES.map((s) => (
+              <div
+                key={`${s.key}-tint`}
+                className="grade"
+                style={{
+                  background: s.tint,
+                  mixBlendMode: s.tintBlend,
+                  opacity: s.key === stateKey ? 1 : 0,
+                }}
+              />
+            ))}
+            {STATES.map((s) => (
+              <div
+                key={`${s.key}-light`}
+                className="grade"
+                style={{
+                  background: s.light,
+                  mixBlendMode: "screen",
+                  opacity: s.key === stateKey ? 1 : 0,
+                }}
+              />
+            ))}
+
+            <RainBlock on={stateKey === "baarish"} />
+            <div className="scrim" />
+            {washKey > 0 && (
+              <div key={washKey} className="wash" style={{ background: state.wash }} />
+            )}
           </>
         )}
-        <div className={`rain-overlay ${stateKey === "baarish" ? "on" : ""}`} />
+      </div>
+
+      <div className="masthead" aria-hidden="true">
+        <div className="masthead-title">नौ टपरी</div>
+        <div className="masthead-sub">chai lagao, gaane suno</div>
       </div>
 
       <div
@@ -733,55 +1107,47 @@ export default function Page() {
         }}
       >
         <button
-          className="register-tab"
+          className="slip"
           onClick={() => setDrawerOpen(true)}
           aria-haspopup="dialog"
-          style={{
-            font: "inherit",
-            fontFamily: "'Kalam', cursive",
-            fontSize: 14,
-            color: PAPER,
-            background: "rgba(23,18,14,0.5)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            border: `1px solid rgba(237,226,203,0.2)`,
-            borderRadius: 8,
-            padding: "10px 16px",
-            cursor: "pointer",
-            textAlign: "left",
-            maxWidth: 220,
-          }}
+          aria-label="register kholo — tapri chuno"
         >
-          <div style={{ fontSize: 10, color: STEEL, fontFamily: "'Familjen Grotesk', sans-serif", marginBottom: 2 }}>
-            रजिस्टर खोलो
-          </div>
-          <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {active.name}
-          </div>
+          <span className="slip-k">रजिस्टर खोलो</span>
+          <span className="slip-name">{active.name}</span>
         </button>
 
-        <StatePills current={stateKey} onChange={changeState} />
+        <div role="radiogroup" aria-label="waqt" className="pills">
+          {STATES.map((s) => (
+            <button
+              key={s.key}
+              role="radio"
+              aria-checked={s.key === stateKey}
+              title={s.hint}
+              onClick={() => changeState(s.key)}
+              className={`pill${s.key === stateKey ? " on" : ""}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div
-        style={{
-          position: "fixed",
-          left: 18,
-          bottom: 84,
-          zIndex: 20,
-          maxWidth: "min(420px, 60vw)",
-          color: PAPER,
-          fontFamily: "'Familjen Grotesk', sans-serif",
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          textShadow: "0 1px 6px rgba(0,0,0,0.6)",
-        }}
-      >
-        <div style={{ opacity: 0.85 }}>{active.area}</div>
-        <div style={{ opacity: 0.65, marginTop: 2 }}>{active.note}</div>
+      <div className="stall-info" key={active.id}>
+        <div className="stall-name">{active.name}</div>
+        <div className="stall-area">{active.area}</div>
+        <div className="stall-note">{active.note}</div>
       </div>
 
       <MusicPlayer />
+
+      <a
+        className="credit"
+        href="https://instagram.com/maaef.media"
+        target="_blank"
+        rel="noreferrer"
+      >
+        @maaef.media
+      </a>
 
       <RegisterDrawer
         open={drawerOpen}
