@@ -245,8 +245,8 @@ function Scene({ tapri, state, entering }) {
 function RainBlock({ on }) {
   return (
     <div className={`rainblock${on ? " on" : ""}`} aria-hidden="true">
+      <div className="rain-layer rain-sheet" />
       <div className="rain-layer rain-far" />
-      <div className="rain-layer rain-mid" />
       <div className="rain-layer rain-near" />
       <div className="rain-mist" />
       <div className="rain-flash" />
@@ -757,32 +757,44 @@ export default function Page() {
         }
         .rainblock.on .rain-layer { animation-play-state: running; }
 
-        .rain-far {
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.32' stroke-width='1' stroke-linecap='round'><line x1='9' y1='14' x2='9' y2='34'/><line x1='30' y1='78' x2='30' y2='98'/><line x1='52' y1='36' x2='52' y2='56'/><line x1='71' y1='6' x2='71' y2='26'/><line x1='90' y1='64' x2='90' y2='84'/><line x1='108' y1='20' x2='108' y2='40'/><line x1='121' y1='92' x2='121' y2='112'/><line x1='22' y1='104' x2='22' y2='124'/><line x1='44' y1='4' x2='44' y2='24'/><line x1='62' y1='88' x2='62' y2='108'/></g></svg>");
-          background-size: 84px 84px;
-          opacity: 0.5;
-          animation-name: rainfall-far;
-          animation-duration: 1.25s;
+        /* soft wind-blown sheets of rain, no lines — just drifting atmosphere */
+        .rain-sheet {
+          background:
+            linear-gradient(100deg,
+              rgba(172,192,206,0.10) 0%, rgba(172,192,206,0) 28%,
+              rgba(172,192,206,0.07) 52%, rgba(172,192,206,0) 78%,
+              rgba(172,192,206,0.09) 100%);
+          background-size: 100% 100%;
+          animation-name: sheetDrift;
+          animation-duration: 13s;
+          animation-timing-function: ease-in-out;
+          animation-direction: alternate;
         }
-        @keyframes rainfall-far { to { background-position: 0 84px; } }
+        @keyframes sheetDrift {
+          from { transform: rotate(11deg) translateX(-2.5%); }
+          to   { transform: rotate(11deg) translateX(2.5%); }
+        }
 
-        .rain-mid {
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.45' stroke-width='1.6' stroke-linecap='round'><line x1='14' y1='18' x2='14' y2='50'/><line x1='38' y1='70' x2='38' y2='102'/><line x1='60' y1='8' x2='60' y2='40'/><line x1='82' y1='52' x2='82' y2='84'/><line x1='103' y1='14' x2='103' y2='46'/><line x1='118' y1='76' x2='118' y2='108'/><line x1='26' y1='90' x2='26' y2='122'/></g></svg>");
-          background-size: 128px 128px;
+        /* streaks: long, gradient-faded ends, steel-blue, blurred into the paint */
+        .rain-far {
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='10' y='20' width='1.1' height='70'/><rect x='34' y='148' width='1.1' height='70'/><rect x='56' y='58' width='1.1' height='70'/><rect x='78' y='180' width='1.1' height='70'/><rect x='99' y='6' width='1.1' height='70'/><rect x='118' y='114' width='1.1' height='70'/><rect x='45' y='96' width='1.1' height='70'/></g></svg>");
+          background-size: 96px 192px;
           opacity: 0.55;
-          animation-name: rainfall-mid;
-          animation-duration: 0.78s;
+          filter: blur(0.6px);
+          animation-name: rainfall-far;
+          animation-duration: 1.9s;
         }
-        @keyframes rainfall-mid { to { background-position: 0 128px; } }
+        @keyframes rainfall-far { to { background-position: 0 192px; } }
 
         .rain-near {
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><g stroke='%23D8E2EA' stroke-opacity='0.42' stroke-width='2.2' stroke-linecap='round'><line x1='18' y1='8' x2='18' y2='64'/><line x1='52' y1='58' x2='52' y2='114'/><line x1='86' y1='14' x2='86' y2='70'/><line x1='112' y1='64' x2='112' y2='120'/><line x1='34' y1='84' x2='34' y2='124'/></g></svg>");
-          background-size: 190px 190px;
-          opacity: 0.6;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='18' y='12' width='1.7' height='120'/><rect x='58' y='112' width='1.7' height='120'/><rect x='96' y='44' width='1.7' height='120'/><rect x='118' y='128' width='1.7' height='120'/></g></svg>");
+          background-size: 170px 340px;
+          opacity: 0.55;
+          filter: blur(0.4px);
           animation-name: rainfall-near;
-          animation-duration: 0.48s;
+          animation-duration: 1.05s;
         }
-        @keyframes rainfall-near { to { background-position: 0 190px; } }
+        @keyframes rainfall-near { to { background-position: 0 340px; } }
 
         .rain-mist {
           position: absolute; inset: 0;
