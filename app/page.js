@@ -114,24 +114,19 @@ const STATES = [
       "radial-gradient(ellipse 60% 50% at 50% 58%, rgba(255,176,84,0.14), rgba(255,176,84,0) 70%)",
     wash: "radial-gradient(circle at 50% 35%, rgba(34,48,92,0.6), rgba(34,48,92,0) 72%)",
   },
-  {
-    key: "baarish",
-    label: "बारिश",
-    hint: "rain",
-    night: 0.3,
-    dayFilter: "brightness(0.72) saturate(0.45) contrast(0.96) hue-rotate(6deg)",
-    nightFilter: "brightness(0.9) saturate(0.7)",
-    tint: "linear-gradient(180deg, rgba(70,88,104,0.44), rgba(70,88,104,0.28) 55%, rgba(60,74,88,0.38))",
-    tintBlend: "multiply",
-    light:
-      "radial-gradient(ellipse 80% 35% at 50% 0%, rgba(190,210,225,0.12), rgba(190,210,225,0) 65%)",
-    wash: "radial-gradient(circle at 50% 35%, rgba(112,132,150,0.55), rgba(112,132,150,0) 72%)",
-  },
 ];
+
+/* rain is a layer over any time state, not a state of its own */
+const RAIN_TINT =
+  "linear-gradient(180deg, rgba(70,88,104,0.40), rgba(70,88,104,0.26) 55%, rgba(60,74,88,0.34))";
+const RAIN_FILTER = "saturate(0.62) brightness(0.8) contrast(0.97)";
+const RAIN_WASH =
+  "radial-gradient(circle at 50% 35%, rgba(112,132,150,0.5), rgba(112,132,150,0) 72%)";
 
 const PLAYLIST_ID = "PLJwtI1xb0Z_YSjwpW6zQVQkr6TWb_7GRP";
 const LS_TAPRI = "nautapri.tapri";
 const LS_STATE = "nautapri.state";
+const LS_RAIN = "nautapri.rain";
 
 /* strip a raw YouTube video title down to "song — artist" */
 const TITLE_JUNK = /\b(official( music)? (video|audio)|full( video)? song|lyrical( video)?|lyrics?|hd|4k|remastered|audio jukebox|video jukebox|jukebox|vevo|explicit)\b/gi;
@@ -229,17 +224,17 @@ function Plate({ tapri, plate, opacity, filter }) {
 }
 
 /* a scene = the day + night plates of one tapri, mixed per time state */
-function Scene({ tapri, state, entering }) {
+function Scene({ tapri, state, nightAmt, entering }) {
   return (
     <div className={`scene${entering ? " scene-in" : ""}`}>
       <Plate tapri={tapri} plate="day" opacity={1} filter={state.dayFilter} />
-      <Plate tapri={tapri} plate="night" opacity={state.night} filter={state.nightFilter} />
+      <Plate tapri={tapri} plate="night" opacity={nightAmt} filter={state.nightFilter} />
     </div>
   );
 }
 
 /* ---------------------------------------------------------------------- */
-/* rain — three parallax layers of falling streaks + mist + far lightning */
+/* rain — parallax streaks, drifting sheet, glass droplets, mist, thunder */
 /* ---------------------------------------------------------------------- */
 
 function RainBlock({ on }) {
@@ -248,8 +243,10 @@ function RainBlock({ on }) {
       <div className="rain-layer rain-sheet" />
       <div className="rain-layer rain-far" />
       <div className="rain-layer rain-near" />
+      <div className="rain-glass" />
       <div className="rain-mist" />
-      <div className="rain-flash" />
+      <div className="rain-flash rain-flash-a" />
+      <div className="rain-flash rain-flash-b" />
     </div>
   );
 }
@@ -580,7 +577,8 @@ export default function Page() {
   const [activeId, setActiveId] = useState(TAPRIS[0].id);
   const [prevId, setPrevId] = useState(null);
   const [stateKey, setStateKey] = useState("subah");
-  const [washKey, setWashKey] = useState(0);
+  const [rainOn, setRainOn] = useState(false);
+  const [wash, setWash] = useState({ key: 0, bg: "" });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -595,6 +593,7 @@ export default function Page() {
       if (savedState && STATES.some((st) => st.key === savedState)) {
         s = savedState;
       }
+      if (localStorage.getItem(LS_RAIN) === "1") setRainOn(true);
     } catch (e) {}
     setStateKey(s || detectStateFromIST());
     setHydrated(true);
@@ -630,11 +629,23 @@ export default function Page() {
 
   function changeState(key) {
     if (key === stateKey) return;
+    const next = STATES.find((s) => s.key === key);
     setStateKey(key);
-    setWashKey((k) => k + 1);
+    setWash((w) => ({ key: w.key + 1, bg: next ? next.wash : "" }));
     try {
       localStorage.setItem(LS_STATE, key);
     } catch (e) {}
+  }
+
+  function toggleRain() {
+    setRainOn((r) => {
+      const next = !r;
+      try {
+        localStorage.setItem(LS_RAIN, next ? "1" : "0");
+      } catch (e) {}
+      return next;
+    });
+    setWash((w) => ({ key: w.key + 1, bg: RAIN_WASH }));
   }
 
   function selectTapri(id) {
@@ -691,6 +702,7 @@ export default function Page() {
           position: absolute; inset: 0;
           animation: kenburns 55s ease-in-out infinite alternate;
           transform-origin: 50% 60%;
+          transition: filter 2s ease;
         }
         @keyframes kenburns {
           from { transform: scale(1.02); }
@@ -775,26 +787,41 @@ export default function Page() {
           to   { transform: rotate(11deg) translateX(2.5%); }
         }
 
-        /* streaks: long, gradient-faded ends, steel-blue, blurred into the paint */
+        /* streaks: varied lengths and widths in each tile, different angles and
+           non-harmonic speeds per layer, so the fall never reads as one sheet */
         .rain-far {
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='10' y='20' width='1.1' height='70'/><rect x='34' y='148' width='1.1' height='70'/><rect x='56' y='58' width='1.1' height='70'/><rect x='78' y='180' width='1.1' height='70'/><rect x='99' y='6' width='1.1' height='70'/><rect x='118' y='114' width='1.1' height='70'/><rect x='45' y='96' width='1.1' height='70'/></g></svg>");
+          transform: rotate(9.5deg);
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='10' y='20' width='1' height='52'/><rect x='34' y='150' width='1.1' height='78'/><rect x='56' y='58' width='0.9' height='44'/><rect x='78' y='180' width='1.1' height='64'/><rect x='99' y='6' width='1' height='86'/><rect x='118' y='114' width='0.9' height='50'/><rect x='45' y='96' width='1.1' height='70'/><rect x='22' y='206' width='1' height='46'/><rect x='88' y='118' width='0.9' height='40'/></g></svg>");
           background-size: 96px 192px;
           opacity: 0.55;
           filter: blur(0.6px);
           animation-name: rainfall-far;
-          animation-duration: 1.9s;
+          animation-duration: 2.1s;
         }
         @keyframes rainfall-far { to { background-position: 0 192px; } }
 
         .rain-near {
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='18' y='12' width='1.7' height='120'/><rect x='58' y='112' width='1.7' height='120'/><rect x='96' y='44' width='1.7' height='120'/><rect x='118' y='128' width='1.7' height='120'/></g></svg>");
+          transform: rotate(12.5deg);
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='18' y='12' width='1.6' height='96'/><rect x='58' y='112' width='1.8' height='128'/><rect x='96' y='44' width='1.5' height='76'/><rect x='118' y='150' width='1.7' height='104'/><rect x='38' y='204' width='1.5' height='50'/></g></svg>");
           background-size: 170px 340px;
           opacity: 0.55;
           filter: blur(0.4px);
           animation-name: rainfall-near;
-          animation-duration: 1.05s;
+          animation-duration: 0.95s;
         }
         @keyframes rainfall-near { to { background-position: 0 340px; } }
+
+        /* droplets stuck to the glass, like a train window */
+        .rain-glass {
+          position: absolute; inset: 0;
+          pointer-events: none;
+          background-image:
+            url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><defs><radialGradient id='d' cx='0.35' cy='0.3' r='0.75'><stop offset='0' stop-color='%23FFFFFF' stop-opacity='0.5'/><stop offset='0.35' stop-color='%23DCE8F0' stop-opacity='0.16'/><stop offset='0.8' stop-color='%239FB4C2' stop-opacity='0.04'/><stop offset='1' stop-color='%23FFFFFF' stop-opacity='0.22'/></radialGradient></defs><g fill='url(%23d)'><ellipse cx='28' cy='40' rx='3.2' ry='4'/><ellipse cx='70' cy='22' rx='2.2' ry='2.8'/><ellipse cx='120' cy='58' rx='4' ry='5'/><ellipse cx='176' cy='30' rx='2.6' ry='3.2'/><ellipse cx='220' cy='84' rx='3' ry='3.8'/><ellipse cx='44' cy='110' rx='2' ry='2.5'/><ellipse cx='96' cy='140' rx='3.4' ry='4.2'/><ellipse cx='150' cy='120' rx='2.4' ry='3'/><ellipse cx='204' cy='160' rx='4.4' ry='5.4'/><ellipse cx='30' cy='190' rx='2.8' ry='3.4'/><ellipse cx='86' cy='214' rx='2.2' ry='2.7'/><ellipse cx='140' cy='196' rx='3.6' ry='4.4'/><ellipse cx='198' cy='228' rx='2.4' ry='3'/><ellipse cx='240' cy='200' rx='2' ry='2.6'/><ellipse cx='12' cy='240' rx='3' ry='3.7'/><ellipse cx='60' cy='60' rx='1.8' ry='2.2'/><ellipse cx='160' cy='70' rx='1.9' ry='2.4'/><ellipse cx='110' cy='90' rx='2.1' ry='2.6'/></g></svg>"),
+            url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><defs><radialGradient id='d' cx='0.35' cy='0.3' r='0.75'><stop offset='0' stop-color='%23FFFFFF' stop-opacity='0.5'/><stop offset='0.35' stop-color='%23DCE8F0' stop-opacity='0.16'/><stop offset='0.8' stop-color='%239FB4C2' stop-opacity='0.04'/><stop offset='1' stop-color='%23FFFFFF' stop-opacity='0.22'/></radialGradient></defs><g fill='url(%23d)'><ellipse cx='28' cy='40' rx='3.2' ry='4'/><ellipse cx='70' cy='22' rx='2.2' ry='2.8'/><ellipse cx='120' cy='58' rx='4' ry='5'/><ellipse cx='176' cy='30' rx='2.6' ry='3.2'/><ellipse cx='220' cy='84' rx='3' ry='3.8'/><ellipse cx='44' cy='110' rx='2' ry='2.5'/><ellipse cx='96' cy='140' rx='3.4' ry='4.2'/><ellipse cx='150' cy='120' rx='2.4' ry='3'/><ellipse cx='204' cy='160' rx='4.4' ry='5.4'/><ellipse cx='30' cy='190' rx='2.8' ry='3.4'/><ellipse cx='86' cy='214' rx='2.2' ry='2.7'/><ellipse cx='140' cy='196' rx='3.6' ry='4.4'/><ellipse cx='198' cy='228' rx='2.4' ry='3'/><ellipse cx='240' cy='200' rx='2' ry='2.6'/><ellipse cx='12' cy='240' rx='3' ry='3.7'/><ellipse cx='60' cy='60' rx='1.8' ry='2.2'/><ellipse cx='160' cy='70' rx='1.9' ry='2.4'/><ellipse cx='110' cy='90' rx='2.1' ry='2.6'/></g></svg>");
+          background-size: 256px 256px, 407px 407px;
+          background-position: 0 0, 130px 90px;
+          opacity: 0.5;
+        }
 
         .rain-mist {
           position: absolute; inset: 0;
@@ -803,18 +830,42 @@ export default function Page() {
             radial-gradient(ellipse 90% 30% at 50% 105%, rgba(150,170,185,0.14), rgba(150,170,185,0) 70%);
         }
 
+        /* two flash layers on prime-length cycles — together they read as
+           irregular distant thunderstorm strikes */
         .rain-flash {
           position: absolute; inset: 0;
-          background: radial-gradient(ellipse 70% 45% at 68% -5%, rgba(220,232,245,0.9), rgba(220,232,245,0) 62%);
           opacity: 0;
-          animation: lightning 13s linear infinite;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-play-state: paused;
         }
-        @keyframes lightning {
-          0%, 91.5%, 100% { opacity: 0; }
-          92% { opacity: 0.10; }
-          92.7% { opacity: 0.02; }
-          93.4% { opacity: 0.13; }
-          94.5% { opacity: 0; }
+        .rainblock.on .rain-flash { animation-play-state: running; }
+        .rain-flash-a {
+          background: radial-gradient(ellipse 70% 45% at 68% -5%, rgba(220,232,245,0.9), rgba(220,232,245,0) 62%);
+          animation-name: lightningA;
+          animation-duration: 17s;
+        }
+        @keyframes lightningA {
+          0%, 60.5%, 100% { opacity: 0; }
+          61% { opacity: 0.16; }
+          61.6% { opacity: 0.03; }
+          62.4% { opacity: 0.2; }
+          63.6% { opacity: 0; }
+        }
+        .rain-flash-b {
+          background: radial-gradient(ellipse 60% 40% at 22% -8%, rgba(214,226,242,0.85), rgba(214,226,242,0) 58%);
+          animation-name: lightningB;
+          animation-duration: 23s;
+        }
+        @keyframes lightningB {
+          0%, 37.6%, 100% { opacity: 0; }
+          38% { opacity: 0.12; }
+          38.7% { opacity: 0; }
+          39.3% { opacity: 0.09; }
+          40.4% { opacity: 0; }
+          81.6% { opacity: 0; }
+          82% { opacity: 0.14; }
+          83.2% { opacity: 0; }
         }
 
         /* ---------- grain + vignette ---------- */
@@ -1106,9 +1157,24 @@ export default function Page() {
       <div className="stage grain vignette">
         {hydrated && (
           <>
-            <div className="kb">
-              {prev && <Scene tapri={prev} state={state} />}
-              <Scene key={active.id} tapri={active} state={state} entering={!!prev} />
+            <div
+              className="kb"
+              style={{ filter: rainOn ? RAIN_FILTER : "none" }}
+            >
+              {prev && (
+                <Scene
+                  tapri={prev}
+                  state={state}
+                  nightAmt={Math.min(1, state.night + (rainOn ? 0.3 : 0))}
+                />
+              )}
+              <Scene
+                key={active.id}
+                tapri={active}
+                state={state}
+                nightAmt={Math.min(1, state.night + (rainOn ? 0.3 : 0))}
+                entering={!!prev}
+              />
             </div>
 
             {STATES.map((s) => (
@@ -1133,11 +1199,19 @@ export default function Page() {
                 }}
               />
             ))}
+            <div
+              className="grade"
+              style={{
+                background: RAIN_TINT,
+                mixBlendMode: "multiply",
+                opacity: rainOn ? 1 : 0,
+              }}
+            />
 
-            <RainBlock on={stateKey === "baarish"} />
+            <RainBlock on={rainOn} />
             <div className="scrim" />
-            {washKey > 0 && (
-              <div key={washKey} className="wash" style={{ background: state.wash }} />
+            {wash.key > 0 && (
+              <div key={wash.key} className="wash" style={{ background: wash.bg }} />
             )}
           </>
         )}
@@ -1167,19 +1241,31 @@ export default function Page() {
           <span className="slip-name">{active.name}</span>
         </button>
 
-        <div role="radiogroup" aria-label="waqt" className="pills">
-          {STATES.map((s) => (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <div role="radiogroup" aria-label="waqt" className="pills">
+            {STATES.map((s) => (
+              <button
+                key={s.key}
+                role="radio"
+                aria-checked={s.key === stateKey}
+                title={s.hint}
+                onClick={() => changeState(s.key)}
+                className={`pill${s.key === stateKey ? " on" : ""}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="pills">
             <button
-              key={s.key}
-              role="radio"
-              aria-checked={s.key === stateKey}
-              title={s.hint}
-              onClick={() => changeState(s.key)}
-              className={`pill${s.key === stateKey ? " on" : ""}`}
+              aria-pressed={rainOn}
+              title="rain"
+              onClick={toggleRain}
+              className={`pill${rainOn ? " on" : ""}`}
             >
-              {s.label}
+              बारिश
             </button>
-          ))}
+          </div>
         </div>
       </div>
 
