@@ -89,19 +89,6 @@ const STATES = [
     wash: "radial-gradient(circle at 50% 35%, rgba(255,198,140,0.55), rgba(255,198,140,0) 72%)",
   },
   {
-    key: "dopahar",
-    label: "दोपहर",
-    hint: "afternoon",
-    night: 0,
-    dayFilter: "brightness(1.09) contrast(1.05) saturate(1.05)",
-    nightFilter: "none",
-    tint: "linear-gradient(180deg, rgba(255,250,235,0.14), rgba(0,0,0,0) 55%)",
-    tintBlend: "soft-light",
-    light:
-      "radial-gradient(ellipse 70% 40% at 50% -10%, rgba(255,255,245,0.25), rgba(255,255,245,0) 60%)",
-    wash: "radial-gradient(circle at 50% 35%, rgba(255,250,232,0.6), rgba(255,250,232,0) 72%)",
-  },
-  {
     key: "shaam",
     label: "शाम",
     hint: "evening",
@@ -175,8 +162,7 @@ function detectStateFromIST() {
     new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
   );
   const h = ist.getHours();
-  if (h >= 5 && h < 11) return "subah";
-  if (h >= 11 && h < 16) return "dopahar";
+  if (h >= 5 && h < 16) return "subah";
   if (h >= 16 && h < 19) return "shaam";
   return "raat";
 }
@@ -593,7 +579,7 @@ function MusicPlayer() {
 export default function Page() {
   const [activeId, setActiveId] = useState(TAPRIS[0].id);
   const [prevId, setPrevId] = useState(null);
-  const [stateKey, setStateKey] = useState("dopahar");
+  const [stateKey, setStateKey] = useState("subah");
   const [washKey, setWashKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -668,7 +654,7 @@ export default function Page() {
     [prevId]
   );
   const state = useMemo(
-    () => STATES.find((s) => s.key === stateKey) || STATES[1],
+    () => STATES.find((s) => s.key === stateKey) || STATES[0],
     [stateKey]
   );
 
