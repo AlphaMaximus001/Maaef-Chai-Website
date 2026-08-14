@@ -81,6 +81,30 @@ const PLAYLIST_ID = "PLJwtI1xb0Z_YSjwpW6zQVQkr6TWb_7GRP";
 const LS_TAPRI = "nautapri.tapri";
 const LS_STATE = "nautapri.state";
 
+/* strip a raw YouTube video title down to "song — artist" */
+const TITLE_JUNK = /\b(official( music)? (video|audio)|full( video)? song|lyrical( video)?|lyrics?|hd|4k|remastered|audio jukebox|video jukebox|jukebox|vevo|explicit)\b/gi;
+
+function parseSongArtist(rawTitle, author) {
+  let raw = (rawTitle || "").trim();
+  raw = raw.replace(/[\(\[\{][^\)\]\}]*[\)\]\}]/g, " "); // drop bracketed/parenthetical junk
+  const segments = raw
+    .split("|")
+    .map((s) => s.replace(TITLE_JUNK, " ").replace(/\s{2,}/g, " ").trim());
+  const cleanAuthor = (author || "").replace(/\s*-\s*Topic$/i, "").trim();
+
+  const first = (segments[0] || "").replace(/^[-–:\s]+|[-–:\s]+$/g, "").trim();
+  const dashParts = first.split(/\s[-–]\s/);
+  if (dashParts.length >= 2) {
+    return { song: dashParts[0].trim(), artist: dashParts.slice(1).join(" — ").trim() };
+  }
+
+  if (segments.length > 1) {
+    const last = segments[segments.length - 1].replace(/^[-–:\s]+|[-–:\s]+$/g, "").trim();
+    return { song: first, artist: last || cleanAuthor };
+  }
+  return { song: first, artist: cleanAuthor };
+}
+
 function detectStateFromIST() {
   const ist = new Date(
     new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
@@ -379,7 +403,7 @@ function MusicPlayer() {
   const shuffledOnce = useRef(false);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [title, setTitle] = useState("");
+  const [track, setTrack] = useState({ song: "", artist: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -409,7 +433,7 @@ function MusicPlayer() {
               setPlaying(true);
               try {
                 const d = playerRef.current.getVideoData();
-                setTitle(d && d.title ? d.title : "");
+                setTrack(parseSongArtist(d?.title, d?.author));
               } catch (err) {}
               if (!shuffledOnce.current) {
                 shuffledOnce.current = true;
@@ -510,24 +534,28 @@ function MusicPlayer() {
         <div
           style={{
             fontFamily: "'Familjen Grotesk', sans-serif",
-            fontSize: 12,
+            fontWeight: 600,
+            fontSize: 12.5,
             color: PAPER,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {title || "gaane suno"}
+          {track.song || "gaane suno"}
         </div>
         <div
           style={{
             fontFamily: "'Familjen Grotesk', sans-serif",
-            fontSize: 9.5,
+            fontSize: 10.5,
             color: STEEL,
             marginTop: 1,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
-          via YouTube — plays go to the artist
+          {track.artist ? `${track.artist} · via YouTube` : "via YouTube — plays go to the artist"}
         </div>
       </div>
     </div>
