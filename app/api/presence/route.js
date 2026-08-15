@@ -3,19 +3,21 @@
  * is written into a sorted set scored by timestamp, anything older than the
  * window is dropped, and the remaining members are the people here now.
  *
- * Backed by Upstash Redis over its REST API. Vercel injects credentials
- * under several different names depending on how the store was attached
- * (Marketplace Upstash, Vercel KV, or a hand-made Upstash project), and
- * some setups only provide the redis:// connection string — so resolve()
- * accepts all of them and derives REST credentials when it has to.
+ * Two ways to reach a store, because it depends how the store was attached:
+ *   REST — Upstash exposes an HTTP API, reachable with plain fetch.
+ *   TCP  — most other Redis providers (and Vercel's own Redis) hand over
+ *          only a redis:// connection string and speak the wire protocol.
+ * resolve() works out which is available; REST is preferred when both are.
  *
- * Runs on nodejs, not edge, so process.env is read at request time. Under
- * the edge runtime Next inlines process.env at build time, which means a
- * store attached after the build would never be seen.
+ * Runs on nodejs, not edge: process.env must be read at request time (edge
+ * inlines it at build time, so a store attached later is never seen), and
+ * the TCP client needs real sockets.
  *
  * The count is never invented: with nothing configured, or the store
  * unreachable, this returns null and the counter renders nothing.
  */
+
+import Redis from "ioredis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,47 +28,47 @@ const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 const noStore = { "cache-control": "no-store, max-age=0" };
 
-/* find REST credentials under whichever names this deployment happens to use */
+/* work out how this deployment can reach its store */
 function resolve() {
   const e = process.env;
 
-  const pairs = [
+  const restPairs = [
     ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
     ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
     ["REDIS_REST_API_URL", "REDIS_REST_API_TOKEN"],
     ["STORAGE_REST_API_URL", "STORAGE_REST_API_TOKEN"],
   ];
-  for (const [u, t] of pairs) {
-    if (e[u] && e[t]) return { url: e[u], token: e[t], via: u };
+  for (const [u, t] of restPairs) {
+    if (e[u] && e[t]) return { kind: "rest", url: e[u], token: e[t], via: u };
   }
-
-  // any *_REST_API_URL with a matching *_REST_API_TOKEN (custom prefixes)
   for (const k of Object.keys(e)) {
     if (k.endsWith("_REST_API_URL")) {
       const t = k.replace(/_URL$/, "_TOKEN");
-      if (e[k] && e[t]) return { url: e[k], token: e[t], via: k };
+      if (e[k] && e[t]) return { kind: "rest", url: e[k], token: e[t], via: k };
     }
   }
 
-  // only a redis:// string? Upstash's REST host and token live inside it:
-  // rediss://default:<token>@<host>:<port>  ->  https://<host> + <token>
-  for (const k of ["REDIS_URL", "KV_URL", "UPSTASH_REDIS_URL", "STORAGE_URL"]) {
+  for (const k of ["REDIS_URL", "KV_URL", "UPSTASH_REDIS_URL", "STORAGE_URL", "REDIS_TLS_URL"]) {
     const raw = e[k];
     if (!raw || !/^rediss?:\/\//.test(raw)) continue;
+    // an Upstash connection string also gives us REST credentials for free
     try {
       const u = new URL(raw);
-      if (u.password && u.hostname) {
-        return { url: `https://${u.hostname}`, token: u.password, via: `${k} (derived)` };
+      if (/upstash\.io$/i.test(u.hostname) && u.password) {
+        return { kind: "rest", url: `https://${u.hostname}`, token: u.password, via: `${k} (derived)` };
       }
     } catch {
-      /* not parseable, keep looking */
+      /* fall through to the wire protocol */
     }
+    return { kind: "tcp", url: raw, via: k };
   }
 
   return null;
 }
 
-async function pipeline(store, commands) {
+/* ---- REST ------------------------------------------------------------- */
+
+async function restPipeline(store, commands) {
   const res = await fetch(`${store.url.replace(/\/$/, "")}/pipeline`, {
     method: "POST",
     headers: {
@@ -77,10 +79,54 @@ async function pipeline(store, commands) {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`store responded ${res.status}`);
-  return res.json();
+  const out = await res.json();
+  return (Array.isArray(out) ? out : []).map((r) => r?.result);
 }
 
-/* names only, never values — enough to see what the platform actually injected */
+/* ---- TCP -------------------------------------------------------------- */
+
+// reused across invocations on a warm instance so we are not reconnecting
+// on every heartbeat
+let client = null;
+let clientUrl = null;
+
+function tcpClient(url) {
+  if (client && clientUrl === url && ["ready", "connect", "connecting"].includes(client.status)) {
+    return client;
+  }
+  clientUrl = url;
+  client = new Redis(url, {
+    connectTimeout: 5000,
+    commandTimeout: 5000,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: true,
+    lazyConnect: false,
+    retryStrategy: (times) => (times > 2 ? null : 200),
+    // providers other than Upstash usually terminate TLS with their own chain
+    ...(url.startsWith("rediss://") ? { tls: {} } : {}),
+  });
+  client.on("error", () => {
+    /* swallow: a failed beat must not take the page down */
+  });
+  return client;
+}
+
+async function tcpPipeline(store, commands) {
+  const c = tcpClient(store.url);
+  const res = await c.pipeline(commands).exec();
+  return (res || []).map(([err, val]) => {
+    if (err) throw err;
+    return val;
+  });
+}
+
+/* ---- shared ----------------------------------------------------------- */
+
+function run(store, commands) {
+  return store.kind === "rest" ? restPipeline(store, commands) : tcpPipeline(store, commands);
+}
+
+/* names only, never values — enough to see what the platform injected */
 export async function GET(request) {
   if (!new URL(request.url).searchParams.has("debug")) {
     return Response.json({ ok: true }, { headers: noStore });
@@ -89,19 +135,39 @@ export async function GET(request) {
   const seen = Object.keys(process.env)
     .filter((k) => /REDIS|KV_|UPSTASH|STORAGE|REST_API/i.test(k))
     .sort();
+
+  let providerHint = null;
+  if (store) {
+    try {
+      const h = new URL(store.url).hostname.split(".");
+      providerHint = h.slice(-2).join("."); // e.g. upstash.io, redis-cloud.com
+    } catch {
+      /* leave null */
+    }
+  }
+
   let reachable = null;
   let error = null;
   if (store) {
     try {
-      await pipeline(store, [["PING"]]);
+      await run(store, [["ping"]]);
       reachable = true;
     } catch (err) {
       reachable = false;
-      error = String(err.message || err).slice(0, 120);
+      error = String(err?.message || err).slice(0, 140);
     }
   }
+
   return Response.json(
-    { configured: !!store, via: store?.via ?? null, reachable, error, matchingEnvNames: seen },
+    {
+      configured: !!store,
+      transport: store?.kind ?? null,
+      via: store?.via ?? null,
+      providerHint,
+      reachable,
+      error,
+      matchingEnvNames: seen,
+    },
     { headers: noStore }
   );
 }
@@ -127,13 +193,13 @@ export async function POST(request) {
 
   const now = Date.now();
   try {
-    const out = await pipeline(store, [
-      ["ZREMRANGEBYSCORE", KEY, 0, now - WINDOW_MS],
-      ["ZADD", KEY, now, id],
-      ["EXPIRE", KEY, 300],
-      ["ZCARD", KEY],
+    const out = await run(store, [
+      ["zremrangebyscore", KEY, 0, now - WINDOW_MS],
+      ["zadd", KEY, now, id],
+      ["expire", KEY, 300],
+      ["zcard", KEY],
     ]);
-    const raw = Array.isArray(out) ? out[3]?.result : null;
+    const raw = out?.[3];
     const count = Number.isFinite(Number(raw)) ? Number(raw) : null;
     return Response.json({ count, configured: true }, { headers: noStore });
   } catch {
