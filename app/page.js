@@ -304,15 +304,112 @@ function Scene({ tapri, state, nightAmt, entering }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* rain — parallax streaks, drifting sheet, glass droplets, mist, thunder */
+/* rain — canvas drops, lamp bloom, drifting sheet, glass, mist, thunder */
 /* ---------------------------------------------------------------------- */
 
-function RainBlock({ on }) {
+function RainCanvas({ on }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!on) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let raf, W, H;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = Math.max(1, W * dpr);
+      canvas.height = Math.max(1, H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    /* three depth bands: far = fine mist, near = fast bright streaks */
+    const BANDS = [
+      { n: 175, v: 1250, len: [9, 17], w: 0.6, a: 0.1 },
+      { n: 120, v: 2050, len: [20, 34], w: 0.9, a: 0.15 },
+      { n: 70, v: 3100, len: [36, 60], w: 1.3, a: 0.2 },
+    ];
+    const drops = [];
+    BANDS.forEach((b) => {
+      for (let i = 0; i < b.n; i++) {
+        drops.push({
+          x: Math.random() * (W + 200) - 100,
+          y: Math.random() * H,
+          v: b.v * (0.85 + Math.random() * 0.3),
+          len: b.len[0] + Math.random() * (b.len[1] - b.len[0]),
+          w: b.w,
+          a: b.a * (0.7 + Math.random() * 0.6),
+        });
+      }
+    });
+
+    let last = performance.now();
+    let t = 0;
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+      ctx.clearRect(0, 0, W, H);
+      /* wind sways slowly; gusts modulate visibility so the rain breathes */
+      const wind = 0.16 + 0.06 * Math.sin(t * 0.5) + 0.03 * Math.sin(t * 1.7);
+      const gust = 0.8 + 0.2 * Math.sin(t * 0.23) * Math.sin(t * 0.11 + 2);
+      ctx.lineCap = "round";
+      for (const d of drops) {
+        d.y += d.v * dt;
+        d.x += d.v * wind * dt;
+        if (d.y - d.len > H) {
+          d.y = -d.len - Math.random() * 40;
+          d.x = Math.random() * (W + 200) - 100;
+        }
+        if (d.x - 60 > W) d.x -= W + 120;
+        ctx.strokeStyle = `rgba(186,204,220,${d.a * gust})`;
+        ctx.lineWidth = d.w;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - wind * d.len, d.y - d.len);
+        ctx.stroke();
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+    const onVis = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden) {
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVis);
+      ctx.clearRect(0, 0, W, H);
+    };
+  }, [on]);
+
+  return <canvas ref={ref} className="rain-canvas" />;
+}
+
+function RainBlock({ on, tapri }) {
   return (
     <div className={`rainblock${on ? " on" : ""}`} aria-hidden="true">
       <div className="rain-layer rain-sheet" />
-      <div className="rain-layer rain-far" />
-      <div className="rain-layer rain-near" />
+      {/* the night plate, blurred and screen-blended: every lamp and lit
+          signboard blooms into the rain fog, correctly placed per tapri */}
+      <div
+        className="rain-bloom"
+        style={{ backgroundImage: `url(/tapris/${tapri.id}-night.jpeg)` }}
+      />
+      <RainCanvas on={on} />
       <div className="rain-glass" />
       <div className="rain-mist" />
       <div className="rain-flash rain-flash-a" />
@@ -922,29 +1019,23 @@ export default function Page() {
           to   { transform: rotate(11deg) translateX(2.5%); }
         }
 
-        /* streaks: varied lengths and widths in each tile, different angles and
-           non-harmonic speeds per layer, so the fall never reads as one sheet */
-        .rain-far {
-          transform: rotate(9.5deg);
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.34'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='10' y='20' width='1' height='52'/><rect x='34' y='150' width='1.1' height='78'/><rect x='56' y='58' width='0.9' height='44'/><rect x='78' y='180' width='1.1' height='64'/><rect x='99' y='6' width='1' height='86'/><rect x='118' y='114' width='0.9' height='50'/><rect x='45' y='96' width='1.1' height='70'/><rect x='22' y='206' width='1' height='46'/><rect x='88' y='118' width='0.9' height='40'/></g></svg>");
-          background-size: 96px 192px;
-          opacity: 0.55;
-          filter: blur(0.6px);
-          animation-name: rainfall-far;
-          animation-duration: 2.1s;
+        /* dense per-drop rain, drawn on canvas */
+        .rain-canvas {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%;
+          opacity: 0.85;
         }
-        @keyframes rainfall-far { to { background-position: 0 192px; } }
 
-        .rain-near {
-          transform: rotate(12.5deg);
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='256'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9CCD8' stop-opacity='0'/><stop offset='0.3' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='0.7' stop-color='%23B9CCD8' stop-opacity='0.4'/><stop offset='1' stop-color='%23B9CCD8' stop-opacity='0'/></linearGradient></defs><g fill='url(%23g)'><rect x='18' y='12' width='1.6' height='96'/><rect x='58' y='112' width='1.8' height='128'/><rect x='96' y='44' width='1.5' height='76'/><rect x='118' y='150' width='1.7' height='104'/><rect x='38' y='204' width='1.5' height='50'/></g></svg>");
-          background-size: 170px 340px;
-          opacity: 0.55;
-          filter: blur(0.4px);
-          animation-name: rainfall-near;
-          animation-duration: 0.95s;
+        /* the night plate blurred + screen-blended = fog glow around lights */
+        .rain-bloom {
+          position: absolute; inset: -24px;
+          background-size: cover;
+          background-position: center;
+          filter: blur(18px) brightness(1.1) saturate(1.15);
+          mix-blend-mode: screen;
+          opacity: 0.42;
+          pointer-events: none;
         }
-        @keyframes rainfall-near { to { background-position: 0 340px; } }
 
         /* droplets stuck to the glass, like a train window */
         .rain-glass {
@@ -1343,7 +1434,7 @@ export default function Page() {
               }}
             />
 
-            <RainBlock on={rainOn} />
+            <RainBlock on={rainOn} tapri={active} />
             <div className="scrim" />
             {wash.key > 0 && (
               <div key={wash.key} className="wash" style={{ background: wash.bg }} />
