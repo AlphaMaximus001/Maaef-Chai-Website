@@ -331,9 +331,9 @@ function RainCanvas({ on }) {
 
     /* three depth bands: far = fine mist, near = fast bright streaks */
     const BANDS = [
-      { n: 175, v: 1250, len: [9, 17], w: 0.6, a: 0.1 },
-      { n: 120, v: 2050, len: [20, 34], w: 0.9, a: 0.15 },
-      { n: 70, v: 3100, len: [36, 60], w: 1.3, a: 0.2 },
+      { n: 300, v: 1250, len: [9, 17], w: 0.6, a: 0.12 },
+      { n: 210, v: 2050, len: [20, 34], w: 0.9, a: 0.17 },
+      { n: 130, v: 3100, len: [36, 60], w: 1.3, a: 0.22 },
     ];
     const drops = [];
     BANDS.forEach((b) => {
@@ -888,6 +888,11 @@ export default function Page() {
     setDrawerOpen(false);
   }
 
+  function nextTapri() {
+    const idx = TAPRIS.findIndex((t) => t.id === activeId);
+    selectTapri(TAPRIS[(idx + 1) % TAPRIS.length].id);
+  }
+
   const active = useMemo(
     () => TAPRIS.find((t) => t.id === activeId) || TAPRIS[0],
     [activeId]
@@ -1116,51 +1121,91 @@ export default function Page() {
 
         /* ---------- chrome ---------- */
 
-        .slip {
-          position: relative;
+        .chit {
+          position: fixed;
+          left: 22px;
+          bottom: 24px;
+          z-index: 20;
+          display: flex;
+          gap: 10px;
+          align-items: stretch;
+          width: min(380px, calc(100vw - 44px));
           font-family: 'Kalam', cursive;
           background: ${PAPER};
           background-image:
-            linear-gradient(90deg, rgba(0,0,0,0) 13px, rgba(180,85,47,0.55) 13px, rgba(180,85,47,0.55) 14.5px, rgba(0,0,0,0) 14.5px),
-            repeating-linear-gradient(rgba(23,18,14,0) 0 15px, rgba(23,18,14,0.08) 15px 16px);
+            linear-gradient(90deg, rgba(0,0,0,0) 15px, rgba(180,85,47,0.55) 15px, rgba(180,85,47,0.55) 16.5px, rgba(0,0,0,0) 16.5px),
+            repeating-linear-gradient(rgba(23,18,14,0) 0 26px, rgba(23,18,14,0.08) 26px 27px);
           color: ${INK};
-          border: none;
-          border-radius: 3px 7px 7px 3px;
-          padding: 12px 16px 10px 24px;
-          cursor: pointer;
-          text-align: left;
-          transform: rotate(-1.6deg);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-          transition: transform 0.25s ease;
-          max-width: 230px;
-          font: inherit;
-          font-family: 'Kalam', cursive;
+          border-radius: 4px 8px 8px 4px;
+          padding: 16px 14px 14px 28px;
+          transform: rotate(-1.2deg);
+          box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+          animation: fadeUp 0.8s ease both;
         }
-        .slip:hover { transform: rotate(0deg) scale(1.02); }
-        .slip::before {
+        .chit::before {
           content: "";
           position: absolute;
-          top: 5px; left: 50%;
-          width: 5px; height: 5px;
+          top: 6px; left: 50%;
+          width: 6px; height: 6px;
           margin-left: -3px;
           border-radius: 50%;
           background: rgba(23,18,14,0.5);
           box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
         }
-        .slip-k {
-          display: block;
+        .chit-body { flex: 1; min-width: 0; }
+        .chit-k {
           font-family: 'Familjen Grotesk', sans-serif;
           font-size: 10px;
+          letter-spacing: 0.08em;
           color: #7a6a52;
-          margin-bottom: 1px;
+          margin-bottom: 3px;
         }
-        .slip-name {
-          display: block;
-          font-size: 15px;
-          line-height: 1.2;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        .chit-name {
+          font-family: 'Kalam', cursive;
+          font-weight: 700;
+          font-size: clamp(21px, 2.6vw, 30px);
+          line-height: 1.15;
+          color: ${INK};
+        }
+        .chit-area {
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #7a6a52;
+          margin-top: 5px;
+        }
+        .chit-note {
+          font-family: 'Kalam', cursive;
+          font-size: 13.5px;
+          color: #4a3a28;
+          margin-top: 6px;
+          line-height: 1.4;
+        }
+        .chit-arrows {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .chit-arrow {
+          width: 38px; height: 38px;
+          border-radius: 50%;
+          border: 1.5px solid rgba(180,85,47,0.55);
+          background: transparent;
+          color: ${CLAY};
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font: inherit;
+          transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .chit-arrow:hover { background: rgba(180,85,47,0.13); transform: scale(1.06); }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: rotate(-1.2deg) translateY(10px); }
+          to   { opacity: 1; transform: rotate(-1.2deg) translateY(0); }
         }
 
         .pills {
@@ -1188,44 +1233,6 @@ export default function Page() {
         .pill:hover { background: rgba(237,226,203,0.1); }
         .pill.on { background: ${AMBER}; color: ${INK}; }
         .pill.on:hover { background: ${AMBER}; }
-
-        .stall-info {
-          position: fixed;
-          left: 22px;
-          bottom: 92px;
-          z-index: 20;
-          max-width: min(520px, 78vw);
-          pointer-events: none;
-          animation: fadeUp 0.9s ease both;
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .stall-name {
-          font-family: 'Rozha One', serif;
-          font-size: clamp(26px, 4.2vw, 42px);
-          line-height: 1.08;
-          color: ${PAPER};
-          text-shadow: 0 2px 16px rgba(0,0,0,0.6);
-        }
-        .stall-area {
-          font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 11px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: rgba(237,226,203,0.72);
-          margin-top: 6px;
-          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-        }
-        .stall-note {
-          font-family: 'Kalam', cursive;
-          font-size: 14px;
-          color: rgba(237,226,203,0.78);
-          margin-top: 4px;
-          max-width: 400px;
-          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-        }
 
         .player {
           position: fixed;
@@ -1338,16 +1345,27 @@ export default function Page() {
 
         .credit {
           position: fixed;
+          left: 18px;
+          top: 16px;
+          z-index: 20;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 11px;
+          color: rgba(237,226,203,0.65);
+          text-decoration: none;
+          letter-spacing: 0.06em;
+          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+        }
+        .credit:hover { color: rgba(237,226,203,0.95); }
+
+        .controls-br {
+          position: fixed;
           right: 18px;
           bottom: 18px;
           z-index: 20;
-          font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 10px;
-          color: rgba(147,160,166,0.6);
-          text-decoration: none;
-          letter-spacing: 0.06em;
+          display: flex;
+          gap: 8px;
+          align-items: center;
         }
-        .credit:hover { color: rgba(237,226,203,0.8); }
 
         button:focus-visible, [role="radio"]:focus-visible {
           outline: 2px solid ${AMBER};
@@ -1356,25 +1374,42 @@ export default function Page() {
 
         /* ---------- responsive ---------- */
 
+        @media (max-width: 1380px) {
+          /* keep the chit clear of the centred player */
+          .chit { bottom: 96px; }
+        }
+        @media (max-width: 1200px) {
+          /* keep the pills clear of the centred player */
+          .controls-br { bottom: 88px; }
+        }
+        @media (max-width: 900px) {
+          .controls-br {
+            right: 12px;
+            bottom: auto;
+            top: 14px;
+            flex-direction: column;
+            align-items: flex-end;
+          }
+        }
         @media (max-width: 640px) {
-          .top-bar { padding: 12px !important; }
           .pill { font-size: 11.5px; padding: 5px 9px; }
           .player-art { width: 46px; height: 46px; }
           .player-btn { width: 38px; height: 38px; }
-          .slip { padding: 10px 12px 8px 20px; max-width: 160px; }
-          .stall-info { left: 16px; bottom: 88px; }
-        }
-        @media (max-width: 560px) {
-          .slip-name { display: none; }
-          .slip { max-width: none; }
-          .credit { display: none; }
+          .chit {
+            left: 16px;
+            bottom: 88px;
+            width: min(340px, calc(100vw - 32px));
+            padding: 12px 12px 12px 24px;
+          }
+          .chit-note { display: none; }
+          .chit-arrow { width: 34px; height: 34px; }
         }
 
         /* ---------- reduced motion ---------- */
 
         @media (prefers-reduced-motion: reduce) {
           .kb, .rain-layer, .rain-flash, .wash, .scene-in,
-          .stall-info, .steam, .player-art.spin { animation: none !important; }
+          .chit, .steam, .player-art.spin { animation: none !important; }
           .wash { opacity: 0; }
           * { transition-duration: 0.01ms !important; }
         }
@@ -1443,66 +1478,6 @@ export default function Page() {
         )}
       </div>
 
-      <div
-        className="top-bar"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          padding: 18,
-        }}
-      >
-        <button
-          className="slip"
-          onClick={() => setDrawerOpen(true)}
-          aria-haspopup="dialog"
-          aria-label="register kholo — tapri chuno"
-        >
-          <span className="slip-k">रजिस्टर खोलो</span>
-          <span className="slip-name">{active.name}</span>
-        </button>
-
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-          <div role="radiogroup" aria-label="waqt" className="pills">
-            {STATES.map((s) => (
-              <button
-                key={s.key}
-                role="radio"
-                aria-checked={s.key === stateKey}
-                title={s.hint}
-                onClick={() => changeState(s.key)}
-                className={`pill${s.key === stateKey ? " on" : ""}`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className="pills">
-            <button
-              aria-pressed={rainOn}
-              title="rain"
-              onClick={toggleRain}
-              className={`pill${rainOn ? " on" : ""}`}
-            >
-              बारिश
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="stall-info" key={active.id}>
-        <div className="stall-name">{active.name}</div>
-        <div className="stall-area">{active.area}</div>
-        <div className="stall-note">{active.note}</div>
-      </div>
-
-      <MusicPlayer />
-
       <a
         className="credit"
         href="https://instagram.com/maaef.media"
@@ -1511,6 +1486,67 @@ export default function Page() {
       >
         @maaef.media
       </a>
+
+      <div className="controls-br">
+        <div role="radiogroup" aria-label="waqt" className="pills">
+          {STATES.map((s) => (
+            <button
+              key={s.key}
+              role="radio"
+              aria-checked={s.key === stateKey}
+              title={s.hint}
+              onClick={() => changeState(s.key)}
+              className={`pill${s.key === stateKey ? " on" : ""}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="pills">
+          <button
+            aria-pressed={rainOn}
+            title="rain"
+            onClick={toggleRain}
+            className={`pill${rainOn ? " on" : ""}`}
+          >
+            बारिश
+          </button>
+        </div>
+      </div>
+
+      <div className="chit" key={active.id}>
+        <div className="chit-body">
+          <div className="chit-k">हिसाब रजिस्टर</div>
+          <div className="chit-name">{active.name}</div>
+          <div className="chit-area">{active.area}</div>
+          <div className="chit-note">{active.note}</div>
+        </div>
+        <div className="chit-arrows">
+          <button
+            className="chit-arrow"
+            onClick={nextTapri}
+            aria-label="agli tapri"
+            title="agli tapri"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 12h15M13 6l6 6-6 6" />
+            </svg>
+          </button>
+          <button
+            className="chit-arrow"
+            onClick={() => setDrawerOpen(true)}
+            aria-haspopup="dialog"
+            aria-label="register kholo — tapri chuno"
+            title="register kholo"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 4v15M6 13l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <MusicPlayer />
 
       <RegisterDrawer
         open={drawerOpen}
