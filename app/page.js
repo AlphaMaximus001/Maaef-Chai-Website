@@ -410,7 +410,6 @@ function RainBlock({ on, tapri }) {
         style={{ backgroundImage: `url(/tapris/${tapri.id}-night.jpeg)` }}
       />
       <RainCanvas on={on} />
-      <div className="rain-glass" />
       <div className="rain-mist" />
       <div className="rain-flash rain-flash-a" />
       <div className="rain-flash rain-flash-b" />
@@ -1042,18 +1041,6 @@ export default function Page() {
           pointer-events: none;
         }
 
-        /* droplets stuck to the glass, like a train window */
-        .rain-glass {
-          position: absolute; inset: 0;
-          pointer-events: none;
-          background-image:
-            url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><defs><radialGradient id='d' cx='0.35' cy='0.3' r='0.75'><stop offset='0' stop-color='%23FFFFFF' stop-opacity='0.5'/><stop offset='0.35' stop-color='%23DCE8F0' stop-opacity='0.16'/><stop offset='0.8' stop-color='%239FB4C2' stop-opacity='0.04'/><stop offset='1' stop-color='%23FFFFFF' stop-opacity='0.22'/></radialGradient></defs><g fill='url(%23d)'><ellipse cx='28' cy='40' rx='3.2' ry='4'/><ellipse cx='70' cy='22' rx='2.2' ry='2.8'/><ellipse cx='120' cy='58' rx='4' ry='5'/><ellipse cx='176' cy='30' rx='2.6' ry='3.2'/><ellipse cx='220' cy='84' rx='3' ry='3.8'/><ellipse cx='44' cy='110' rx='2' ry='2.5'/><ellipse cx='96' cy='140' rx='3.4' ry='4.2'/><ellipse cx='150' cy='120' rx='2.4' ry='3'/><ellipse cx='204' cy='160' rx='4.4' ry='5.4'/><ellipse cx='30' cy='190' rx='2.8' ry='3.4'/><ellipse cx='86' cy='214' rx='2.2' ry='2.7'/><ellipse cx='140' cy='196' rx='3.6' ry='4.4'/><ellipse cx='198' cy='228' rx='2.4' ry='3'/><ellipse cx='240' cy='200' rx='2' ry='2.6'/><ellipse cx='12' cy='240' rx='3' ry='3.7'/><ellipse cx='60' cy='60' rx='1.8' ry='2.2'/><ellipse cx='160' cy='70' rx='1.9' ry='2.4'/><ellipse cx='110' cy='90' rx='2.1' ry='2.6'/></g></svg>"),
-            url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><defs><radialGradient id='d' cx='0.35' cy='0.3' r='0.75'><stop offset='0' stop-color='%23FFFFFF' stop-opacity='0.5'/><stop offset='0.35' stop-color='%23DCE8F0' stop-opacity='0.16'/><stop offset='0.8' stop-color='%239FB4C2' stop-opacity='0.04'/><stop offset='1' stop-color='%23FFFFFF' stop-opacity='0.22'/></radialGradient></defs><g fill='url(%23d)'><ellipse cx='28' cy='40' rx='3.2' ry='4'/><ellipse cx='70' cy='22' rx='2.2' ry='2.8'/><ellipse cx='120' cy='58' rx='4' ry='5'/><ellipse cx='176' cy='30' rx='2.6' ry='3.2'/><ellipse cx='220' cy='84' rx='3' ry='3.8'/><ellipse cx='44' cy='110' rx='2' ry='2.5'/><ellipse cx='96' cy='140' rx='3.4' ry='4.2'/><ellipse cx='150' cy='120' rx='2.4' ry='3'/><ellipse cx='204' cy='160' rx='4.4' ry='5.4'/><ellipse cx='30' cy='190' rx='2.8' ry='3.4'/><ellipse cx='86' cy='214' rx='2.2' ry='2.7'/><ellipse cx='140' cy='196' rx='3.6' ry='4.4'/><ellipse cx='198' cy='228' rx='2.4' ry='3'/><ellipse cx='240' cy='200' rx='2' ry='2.6'/><ellipse cx='12' cy='240' rx='3' ry='3.7'/><ellipse cx='60' cy='60' rx='1.8' ry='2.2'/><ellipse cx='160' cy='70' rx='1.9' ry='2.4'/><ellipse cx='110' cy='90' rx='2.1' ry='2.6'/></g></svg>");
-          background-size: 256px 256px, 407px 407px;
-          background-position: 0 0, 130px 90px;
-          opacity: 0.5;
-        }
-
         .rain-mist {
           position: absolute; inset: 0;
           background:
@@ -1478,7 +1465,7 @@ export default function Page() {
 
       <a
         className="credit"
-        href="https://instagram.com/maaef.media"
+        href="https://www.instagram.com/maaef.afterhours"
         target="_blank"
         rel="noreferrer"
       >
