@@ -16,65 +16,65 @@ const STEEL = "#93A0A6";
 const TAPRIS = [
   {
     id: "ashfaq",
-    name: "Ashfaq Tea & Lassi Corner",
+    name: "Ashfaq Tea and Lassi Corner",
     area: "Hussainabad",
-    coords: null,
+    maps: "https://maps.app.goo.gl/LZ9URVi2EE9cwoxE6",
     note: "purani Lucknow ka ek kona, subah subah bhaap uthti hai.",
   },
   {
     id: "keval",
-    name: "Ram Kewal Tea Stall",
+    name: "Kewal Tea Centre",
     area: "Makbara Road, Hazratganj",
-    coords: null,
+    maps: "https://maps.app.goo.gl/bXYnZ4kxY5tS3M5NA",
     note: "chhoti si dukaan, lambi line — waise hi chalta aaya hai.",
   },
   {
     id: "shukla",
     name: "Shukla Tea Stall",
     area: "Hazratganj",
-    coords: null,
+    maps: "https://maps.app.goo.gl/hYrkS7TGLb4Jp6VR8",
     note: "Ganj ki bheed ke beech, ek kulhad thaam lo, sab thehar jaata hai.",
   },
   {
     id: "sharma",
     name: "Sharma Ji Ki Chai",
     area: "T.N. Road, Lalbagh",
-    coords: null,
+    maps: "https://maps.app.goo.gl/HqbzZF4Afw2EGAcq6",
     note: "office jaate waqt ka thehraav, roz ka rasta yahin se hoke.",
   },
   {
     id: "globe",
     name: "Globe Cafe",
     area: "Meergunj",
-    coords: null,
+    maps: "https://maps.app.goo.gl/vBdAyJxSw1Hxqi6N8",
     note: "purana naam, purana kaam — chai wahi, andaaz wahi.",
   },
   {
     id: "raj",
     name: "Raj Coffee Corner",
     area: "Rana Pratap Marg",
-    coords: null,
+    maps: "https://maps.app.goo.gl/QcSHa65ujidLPGgS8",
     note: "naam mein coffee hai, dil chai mein hai.",
   },
   {
     id: "satyam",
-    name: "System Chai Wala",
+    name: "System Chai Centre",
     area: "Vipul Khand, Gomti Nagar",
-    coords: null,
+    maps: "https://maps.app.goo.gl/bDGEcYM1oBTSPLsq8",
     note: "shaam ka adda, gate ke bahar ka table.",
   },
   {
     id: "sonu",
     name: "Sonu Tea Stall",
     area: "Vipin Khand, Gomti Nagar",
-    coords: null,
+    maps: "https://maps.app.goo.gl/x6mYiWaV1qFBuqHp6",
     note: "mohalle wali chai, sabko naam se pehchaanta hai.",
   },
   {
     id: "nukkad",
-    name: "Nukkad",
+    name: "Nukkad Cafe",
     area: "Gomti Nagar",
-    coords: null,
+    maps: "https://maps.app.goo.gl/tXrGMVrnjc22fm17A",
     note: "naam mein hi sab kuch — nukkad pe milte hain.",
   },
 ];
@@ -163,14 +163,12 @@ function parseSongArtist(rawTitle, author) {
 }
 
 /*
- * Google Maps link for a tapri. Once `coords` holds [lat, lng] the link
- * drops the viewer on that exact point; until then it falls back to a
- * name + area search, which finds the place without asserting a pin.
+ * Google Maps link for a tapri. `maps` holds the owner-verified share
+ * link, which opens the actual place page rather than a bare coordinate;
+ * the name + area search is only a fallback if one is ever missing.
  */
 function mapsHref(t) {
-  if (Array.isArray(t.coords) && t.coords.length === 2) {
-    return `https://www.google.com/maps/search/?api=1&query=${t.coords[0]},${t.coords[1]}`;
-  }
+  if (t.maps) return t.maps;
   const q = encodeURIComponent(`${t.name}, ${t.area}, Lucknow`);
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
