@@ -1186,15 +1186,16 @@ export default function Page() {
           padding: 4px;
           border: none;
           background: transparent;
-          color: ${CLAY};
+          color: ${INK};
+          opacity: 0.72;      /* ink sitting in the paper, not printed on it */
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           font: inherit;
-          transition: transform 0.2s ease, color 0.2s ease;
+          transition: transform 0.2s ease, opacity 0.2s ease;
         }
-        .chit-arrow:hover { color: #8f3f1f; }
+        .chit-arrow:hover { opacity: 0.95; }
         .chit-next {
           right: 12px;
           top: 50%;
@@ -1535,8 +1536,15 @@ export default function Page() {
           aria-label="agli tapri"
           title="agli tapri"
         >
-          <svg width="20" height="30" viewBox="0 0 20 30" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M5.5 3.5 C 9 8.5, 12.5 12, 15 15.2 C 12 18.2, 8.5 22.5, 5 27" />
+          {/* each arm is a thin full stroke with a heavier overlay through the
+              middle — a pen lays down least ink where it lands and lifts */}
+          <svg width="22" height="30" viewBox="0 0 22 30" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5.1 4.2 C 8.4 6.9, 11.4 9.7, 13.8 12.4 C 14.9 13.6, 15.8 14.7, 16.5 15.6" strokeWidth="1.2" />
+            <path d="M6.4 5.5 C 9.0 7.7, 11.6 10.2, 14.0 12.7 C 14.7 13.5, 15.3 14.2, 15.8 14.8" strokeWidth="1.9" />
+            <path d="M7.6 6.7 C 9.6 8.6, 11.7 10.7, 13.7 12.8" strokeWidth="2.6" />
+            <path d="M16.8 14.9 C 13.2 18.6, 9.6 22.1, 6.2 25.4 C 5.6 26.0, 5.1 26.5, 4.6 26.9" strokeWidth="1.2" />
+            <path d="M15.6 16.2 C 12.6 19.2, 9.5 22.2, 6.6 24.9" strokeWidth="1.8" />
+            <path d="M14.4 17.4 C 12.0 19.8, 9.6 22.2, 7.4 24.3" strokeWidth="2.4" />
           </svg>
         </button>
         <button
@@ -1546,8 +1554,13 @@ export default function Page() {
           aria-label="register kholo — tapri chuno"
           title="register kholo"
         >
-          <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3.5 5 C 8.5 8.5, 12 12, 15.2 15 C 18.2 12, 22.5 8.5, 27 4.5" />
+          <svg width="30" height="22" viewBox="0 0 30 22" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4.2 5.1 C 6.9 8.4, 9.7 11.4, 12.4 13.8 C 13.6 14.9, 14.7 15.8, 15.6 16.5" strokeWidth="1.2" />
+            <path d="M5.5 6.4 C 7.7 9.0, 10.2 11.6, 12.7 14.0 C 13.5 14.7, 14.2 15.3, 14.8 15.8" strokeWidth="1.9" />
+            <path d="M6.7 7.6 C 8.6 9.6, 10.7 11.7, 12.8 13.7" strokeWidth="2.6" />
+            <path d="M14.9 16.8 C 18.6 13.2, 22.1 9.6, 25.4 6.2 C 26.0 5.6, 26.5 5.1, 26.9 4.6" strokeWidth="1.2" />
+            <path d="M16.2 15.6 C 19.2 12.6, 22.2 9.5, 24.9 6.6" strokeWidth="1.8" />
+            <path d="M17.4 14.4 C 19.8 12.0, 22.2 9.6, 24.3 7.4" strokeWidth="2.4" />
           </svg>
         </button>
       </div>
