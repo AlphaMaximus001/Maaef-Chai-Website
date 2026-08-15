@@ -1505,6 +1505,9 @@ export default function Page() {
         </div>
       </div>
 
+      {/* hidden while the register is open; remounts with its fade-up
+          entrance when the register closes */}
+      {!drawerOpen && (
       <div className="chit" key={active.id}>
         <div className="chit-body">
           <div className="chit-k">हिसाब रजिस्टर</div>
@@ -1536,6 +1539,7 @@ export default function Page() {
           </svg>
         </button>
       </div>
+      )}
 
       <MusicPlayer />
 
