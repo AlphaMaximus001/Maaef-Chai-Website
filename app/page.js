@@ -1482,7 +1482,7 @@ export default function Page() {
         target="_blank"
         rel="noreferrer"
       >
-        @maaef.media
+        Maaef Afterhours
       </a>
 
       <div className="controls-br">
