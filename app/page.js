@@ -937,13 +937,18 @@ export default function Page() {
 
         .kb {
           position: absolute; inset: 0;
-          animation: kenburns 55s ease-in-out infinite alternate;
+          animation: kenburns 90s ease-in-out infinite alternate;
           transform-origin: 50% 60%;
           transition: filter 2s ease;
+          /* promote to its own compositor layer — without this the browser
+             rasterises each step on the main thread and very slow scaling
+             lands on whole-pixel boundaries, which reads as stepping */
+          will-change: transform;
+          backface-visibility: hidden;
         }
         @keyframes kenburns {
-          from { transform: scale(1.02); }
-          to   { transform: scale(1.065); }
+          from { transform: scale(1.03) translate3d(-0.35%, 0.18%, 0); }
+          to   { transform: scale(1.062) translate3d(0.35%, -0.18%, 0); }
         }
 
         .scene { position: absolute; inset: 0; }
