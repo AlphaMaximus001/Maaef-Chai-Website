@@ -200,6 +200,76 @@ function Placeholder({ tapri, plate }) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* rain + thunder sound — synthesised with Web Audio, no files needed     */
+/* ---------------------------------------------------------------------- */
+
+function createRainAudio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+  const master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+
+  /* rain bed: looped noise, band-limited to a soft hiss-patter */
+  const len = 2 * ctx.sampleRate;
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 300;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 1400;
+  lp.Q.value = 0.4;
+  const rainGain = ctx.createGain();
+  rainGain.gain.value = 0.13;
+  src.connect(hp);
+  hp.connect(lp);
+  lp.connect(rainGain);
+  rainGain.connect(master);
+  src.start();
+
+  /* one thunder rumble: brown-noise burst, lowpass sweeping down */
+  function thunder(intensity) {
+    const dur = 4 + Math.random() * 2.5;
+    const n = Math.floor(dur * ctx.sampleRate);
+    const b = ctx.createBuffer(1, n, ctx.sampleRate);
+    const ch = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      ch[i] = last * 3.5;
+    }
+    const s = ctx.createBufferSource();
+    s.buffer = b;
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass";
+    const t0 = ctx.currentTime;
+    f.frequency.setValueAtTime(240 + Math.random() * 80, t0);
+    f.frequency.exponentialRampToValueAtTime(85, t0 + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(
+      Math.max(0.05, intensity),
+      t0 + 0.25 + Math.random() * 0.45
+    );
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    s.connect(f);
+    f.connect(g);
+    g.connect(master);
+    s.start();
+    s.stop(t0 + dur + 0.1);
+  }
+
+  return { ctx, master, thunder };
+}
+
+/* ---------------------------------------------------------------------- */
 /* one plate (day or night) with graceful fallback                        */
 /* ---------------------------------------------------------------------- */
 
@@ -581,6 +651,8 @@ export default function Page() {
   const [wash, setWash] = useState({ key: 0, bg: "" });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const audioRef = useRef(null);
+  const thunderTimersRef = useRef([]);
 
   useEffect(() => {
     let s;
@@ -643,10 +715,73 @@ export default function Page() {
       try {
         localStorage.setItem(LS_RAIN, next ? "1" : "0");
       } catch (e) {}
+      if (next) {
+        /* create/resume inside the click so autoplay policy allows it */
+        try {
+          if (!audioRef.current) audioRef.current = createRainAudio();
+          audioRef.current.ctx.resume().catch(() => {});
+        } catch (e) {}
+      }
       return next;
     });
     setWash((w) => ({ key: w.key + 1, bg: RAIN_WASH }));
   }
+
+  /* rain/thunder sound follows the rain toggle; rumbles land a beat
+     after the visual flashes (17s and 23s cycles, same offsets) */
+  useEffect(() => {
+    const timers = thunderTimersRef.current;
+    if (!rainOn) {
+      const a = audioRef.current;
+      if (a) {
+        const t = a.ctx.currentTime;
+        a.master.gain.cancelScheduledValues(t);
+        a.master.gain.setTargetAtTime(0, t, 0.4);
+      }
+      timers.forEach(clearTimeout);
+      thunderTimersRef.current = [];
+      return;
+    }
+    let a = audioRef.current;
+    if (!a) {
+      try {
+        a = audioRef.current = createRainAudio();
+      } catch (e) {
+        return;
+      }
+    }
+    const t = a.ctx.currentTime;
+    a.master.gain.cancelScheduledValues(t);
+    a.master.gain.setTargetAtTime(1, t, 0.8);
+    const tryResume = () => {
+      if (audioRef.current) audioRef.current.ctx.resume().catch(() => {});
+    };
+    tryResume();
+    /* if rain was restored from storage there was no gesture yet —
+       unlock on the first interaction */
+    window.addEventListener("pointerdown", tryResume, { once: true });
+    window.addEventListener("keydown", tryResume, { once: true });
+
+    function chain(offsetMs, periodMs, intensity) {
+      const fire = () => {
+        try {
+          a.thunder(intensity * (0.7 + Math.random() * 0.6));
+        } catch (e) {}
+        thunderTimersRef.current.push(setTimeout(fire, periodMs));
+      };
+      thunderTimersRef.current.push(setTimeout(fire, offsetMs));
+    }
+    chain(10400 + 1200, 17000, 0.5); /* flash A strike */
+    chain(8700 + 1600, 23000, 0.28); /* flash B, first strike */
+    chain(18900 + 1400, 23000, 0.34); /* flash B, second strike */
+
+    return () => {
+      window.removeEventListener("pointerdown", tryResume);
+      window.removeEventListener("keydown", tryResume);
+      thunderTimersRef.current.forEach(clearTimeout);
+      thunderTimersRef.current = [];
+    };
+  }, [rainOn]);
 
   function selectTapri(id) {
     if (id !== activeId) {
