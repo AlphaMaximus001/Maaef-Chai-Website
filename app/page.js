@@ -475,7 +475,7 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
               color: INK,
             }}
           >
-            हिसाब रजिस्टर
+            गेड़ी रजिस्टर
           </div>
           <div
             style={{
@@ -1130,7 +1130,7 @@ export default function Page() {
             repeating-linear-gradient(rgba(23,18,14,0) 0 26px, rgba(23,18,14,0.08) 26px 27px);
           color: ${INK};
           border-radius: 4px 8px 8px 4px;
-          padding: 16px 58px 42px 28px;
+          padding: 16px 44px 36px 28px;
           transform: rotate(-1.2deg);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
           animation: fadeUp 0.8s ease both;
@@ -1399,7 +1399,7 @@ export default function Page() {
             left: 16px;
             bottom: 16px;
             width: min(360px, calc(100vw - 32px));
-            padding: 12px 50px 38px 24px;
+            padding: 12px 40px 32px 24px;
           }
           .chit-note { display: none; }
         }
@@ -1519,7 +1519,7 @@ export default function Page() {
       {!drawerOpen && (
       <div className="chit" key={active.id}>
         <div className="chit-body">
-          <div className="chit-k">हिसाब रजिस्टर</div>
+          <div className="chit-k">गेड़ी रजिस्टर</div>
           <div className="chit-name">{active.name}</div>
           <div className="chit-area">{active.area}</div>
           <div className="chit-note">{active.note}</div>
@@ -1530,9 +1530,8 @@ export default function Page() {
           aria-label="agli tapri"
           title="agli tapri"
         >
-          <svg width="36" height="24" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3.5 13.5 C 10 11.5, 20 12.5, 31 12" />
-            <path d="M24 5.5 C 26.5 8, 29 10.5, 31.8 12 C 28.5 13.5, 26 16, 24 18.8" />
+          <svg width="20" height="30" viewBox="0 0 20 30" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5.5 3.5 C 9 8.5, 12.5 12, 15 15.2 C 12 18.2, 8.5 22.5, 5 27" />
           </svg>
         </button>
         <button
@@ -1542,9 +1541,8 @@ export default function Page() {
           aria-label="register kholo — tapri chuno"
           title="register kholo"
         >
-          <svg width="24" height="32" viewBox="0 0 24 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12.5 3.5 C 11 10, 12.5 18, 12 27" />
-            <path d="M5 20.5 C 7.5 23, 10 25.5, 12 28.3 C 14 25.5, 16.5 23, 19 20.5" />
+          <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.5 5 C 8.5 8.5, 12 12, 15.2 15 C 18.2 12, 22.5 8.5, 27 4.5" />
           </svg>
         </button>
       </div>
