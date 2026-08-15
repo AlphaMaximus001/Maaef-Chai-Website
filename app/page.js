@@ -9,7 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const INK = "#17120E";
 const PAPER = "#EDE2CB";
 const CLAY = "#B4552F";
-const AMBER = "#E8A33D";
+const RED = "#B7151E";   /* Afterhours wordmark red — UI accent */
+const RED_LIT = "#E33B33"; /* brightened, for focus rings that must stay visible */
 const STEEL = "#93A0A6";
 
 const TAPRIS = [
@@ -552,7 +553,7 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
                       width: 6,
                       height: 6,
                       borderRadius: "50%",
-                      background: AMBER,
+                      background: RED,
                       flexShrink: 0,
                     }}
                   />
@@ -1230,8 +1231,8 @@ export default function Page() {
           transition: background 0.3s ease, color 0.3s ease;
         }
         .pill:hover { background: rgba(237,226,203,0.1); }
-        .pill.on { background: ${AMBER}; color: ${INK}; }
-        .pill.on:hover { background: ${AMBER}; }
+        .pill.on { background: ${RED}; color: ${PAPER}; }
+        .pill.on:hover { background: ${RED}; }
 
         .player {
           position: fixed;
@@ -1255,8 +1256,8 @@ export default function Page() {
           width: 42px; height: 42px;
           border-radius: 50%;
           border: none;
-          background: ${AMBER};
-          color: ${INK};
+          background: ${RED};
+          color: ${PAPER};
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -1295,7 +1296,7 @@ export default function Page() {
           background-color: rgba(237,226,203,0.08);
           background-size: cover;
           background-position: center;
-          border: 1.5px solid rgba(232,163,61,0.85);
+          border: 1.5px solid rgba(183,21,30,0.9);
           box-shadow: 0 2px 10px rgba(0,0,0,0.4);
           display: flex;
           align-items: center;
@@ -1370,7 +1371,7 @@ export default function Page() {
         }
 
         button:focus-visible, [role="radio"]:focus-visible {
-          outline: 2px solid ${AMBER};
+          outline: 2px solid ${RED_LIT};
           outline-offset: 2px;
         }
 
