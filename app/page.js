@@ -1342,14 +1342,17 @@ export default function Page() {
           left: 18px;
           top: 16px;
           z-index: 20;
-          font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 11px;
-          color: rgba(237,226,203,0.65);
-          text-decoration: none;
-          letter-spacing: 0.06em;
-          text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+          display: block;
+          opacity: 0.92;
+          transition: opacity 0.25s ease, transform 0.25s ease;
         }
-        .credit:hover { color: rgba(237,226,203,0.95); }
+        .credit:hover { opacity: 1; transform: scale(1.04); }
+        .credit img {
+          display: block;
+          height: 30px;
+          width: auto;
+          filter: drop-shadow(0 1px 7px rgba(0,0,0,0.75));
+        }
 
         .controls-br {
           position: fixed;
@@ -1475,7 +1478,8 @@ export default function Page() {
         target="_blank"
         rel="noreferrer"
       >
-        Maaef Afterhours
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/afterhours-logo.svg" alt="Maaef Afterhours" />
       </a>
 
       <div className="controls-br">
