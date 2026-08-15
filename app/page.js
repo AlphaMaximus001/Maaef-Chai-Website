@@ -1129,6 +1129,10 @@ export default function Page() {
           background-image:
             linear-gradient(90deg, rgba(0,0,0,0) 15px, rgba(180,85,47,0.55) 15px, rgba(180,85,47,0.55) 16.5px, rgba(0,0,0,0) 16.5px),
             repeating-linear-gradient(rgba(23,18,14,0) 0 26px, rgba(23,18,14,0.08) 26px 27px);
+          /* the margin stripe runs the full height, but the ruled lines stop
+             short so there is a genuine last line with clear paper under it */
+          background-repeat: no-repeat, no-repeat;
+          background-size: 100% 100%, 100% calc(100% - 36px);
           color: ${INK};
           border-radius: 4px 8px 8px 4px;
           padding: 16px 44px 36px 28px;
