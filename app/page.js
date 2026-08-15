@@ -1129,7 +1129,7 @@ export default function Page() {
           display: flex;
           gap: 10px;
           align-items: stretch;
-          width: min(380px, calc(100vw - 44px));
+          width: min(460px, calc(100vw - 44px));
           font-family: 'Kalam', cursive;
           background: ${PAPER};
           background-image:
@@ -1163,7 +1163,7 @@ export default function Page() {
         .chit-name {
           font-family: 'Kalam', cursive;
           font-weight: 700;
-          font-size: clamp(21px, 2.6vw, 30px);
+          font-size: clamp(22px, 3vw, 34px);
           line-height: 1.15;
           color: ${INK};
         }
@@ -1221,8 +1221,8 @@ export default function Page() {
         .pill {
           font: inherit;
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 13px;
-          padding: 6px 12px;
+          font-size: 14px;
+          padding: 8px 15px;
           border-radius: 999px;
           border: none;
           cursor: pointer;
@@ -1236,7 +1236,7 @@ export default function Page() {
 
         .player {
           position: fixed;
-          bottom: 18px;
+          top: 18px;
           left: 50%;
           transform: translateX(-50%);
           z-index: 30;
@@ -1374,31 +1374,29 @@ export default function Page() {
 
         /* ---------- responsive ---------- */
 
-        @media (max-width: 1380px) {
-          /* keep the chit clear of the centred player */
-          .chit { bottom: 96px; }
-        }
-        @media (max-width: 1200px) {
-          /* keep the pills clear of the centred player */
-          .controls-br { bottom: 88px; }
+        @media (max-width: 780px) {
+          /* the top-centre player crowds the corner credit */
+          .credit { display: none; }
         }
         @media (max-width: 900px) {
+          .player { top: 12px; width: min(548px, 94vw); }
+          /* pills tuck under the player's right edge, stacked */
           .controls-br {
             right: 12px;
             bottom: auto;
-            top: 14px;
+            top: 82px;
             flex-direction: column;
             align-items: flex-end;
           }
         }
         @media (max-width: 640px) {
-          .pill { font-size: 11.5px; padding: 5px 9px; }
+          .pill { font-size: 12px; padding: 6px 10px; }
           .player-art { width: 46px; height: 46px; }
           .player-btn { width: 38px; height: 38px; }
           .chit {
             left: 16px;
-            bottom: 88px;
-            width: min(340px, calc(100vw - 32px));
+            bottom: 16px;
+            width: min(360px, calc(100vw - 32px));
             padding: 12px 12px 12px 24px;
           }
           .chit-note { display: none; }
