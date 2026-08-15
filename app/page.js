@@ -173,6 +173,65 @@ function mapsHref(t) {
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
+/* heartbeat to /api/presence and report how many tabs are open right now.
+   returns null whenever there is no real number to show */
+function useViewerCount() {
+  const [count, setCount] = useState(null);
+
+  useEffect(() => {
+    let sid;
+    try {
+      sid = sessionStorage.getItem("nautapri.sid");
+      if (!sid) {
+        sid =
+          crypto.randomUUID?.() ??
+          `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        sessionStorage.setItem("nautapri.sid", sid);
+      }
+    } catch {
+      sid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    }
+
+    let alive = true;
+    let timer;
+
+    async function beat() {
+      clearTimeout(timer);
+      if (!alive) return;
+      if (document.hidden) {
+        timer = setTimeout(beat, 12_000);
+        return;
+      }
+      try {
+        const res = await fetch("/api/presence", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: sid }),
+        });
+        const data = await res.json();
+        if (alive) setCount(typeof data.count === "number" ? data.count : null);
+      } catch {
+        if (alive) setCount(null);
+      }
+      if (alive) timer = setTimeout(beat, 12_000);
+    }
+
+    beat();
+    const onVisible = () => {
+      if (!document.hidden) beat();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  return count;
+}
+
 function detectStateFromIST() {
   const ist = new Date(
     new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
@@ -771,6 +830,7 @@ export default function Page() {
   const [hydrated, setHydrated] = useState(false);
   const audioRef = useRef(null);
   const thunderTimersRef = useRef([]);
+  const viewers = useViewerCount();
 
   useEffect(() => {
     let s;
@@ -1398,6 +1458,34 @@ export default function Page() {
           filter: drop-shadow(0 1px 7px rgba(0,0,0,0.75));
         }
 
+        .viewers {
+          position: fixed;
+          left: 20px;
+          top: 62px;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 11px;
+          letter-spacing: 0.04em;
+          color: rgba(237,226,203,0.62);
+          text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+          pointer-events: none;
+        }
+        .viewers-dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: ${RED_LIT};
+          box-shadow: 0 0 0 0 rgba(227,59,51,0.55);
+          animation: pulseDot 2.6s ease-out infinite;
+        }
+        @keyframes pulseDot {
+          0%   { box-shadow: 0 0 0 0 rgba(227,59,51,0.5); }
+          70%  { box-shadow: 0 0 0 7px rgba(227,59,51,0); }
+          100% { box-shadow: 0 0 0 0 rgba(227,59,51,0); }
+        }
+
         .controls-br {
           position: fixed;
           right: 18px;
@@ -1417,7 +1505,7 @@ export default function Page() {
 
         @media (max-width: 780px) {
           /* the top-centre player crowds the corner credit */
-          .credit { display: none; }
+          .credit, .viewers { display: none; }
         }
         @media (max-width: 900px) {
           .player { top: 12px; width: min(548px, 94vw); }
@@ -1447,7 +1535,8 @@ export default function Page() {
 
         @media (prefers-reduced-motion: reduce) {
           .kb, .rain-layer, .rain-flash, .wash, .scene-in,
-          .chit, .steam, .player-art.spin { animation: none !important; }
+          .chit, .steam, .player-art.spin,
+          .viewers-dot { animation: none !important; }
           .wash { opacity: 0; }
           * { transition-duration: 0.01ms !important; }
         }
@@ -1525,6 +1614,13 @@ export default function Page() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/afterhours-logo.svg" alt="Maaef Afterhours" />
       </a>
+
+      {viewers != null && viewers > 0 && (
+        <div className="viewers" aria-live="polite">
+          <span className="viewers-dot" />
+          {viewers > 1 ? `${viewers} log tapri pe` : "abhi tum akele ho"}
+        </div>
+      )}
 
       <div className="controls-br">
         <div role="radiogroup" aria-label="waqt" className="pills">
