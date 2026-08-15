@@ -444,15 +444,16 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
         aria-hidden={!open}
         style={{
           position: "fixed",
-          top: 0,
-          left: 0,
           bottom: 0,
-          width: "min(360px, 88vw)",
+          left: "min(22px, 4vw)",
+          width: "min(420px, calc(100vw - 32px))",
+          height: "min(72vh, 640px)",
           zIndex: 41,
-          transform: open ? "translateX(0)" : "translateX(-104%)",
-          transition: "transform 0.5s cubic-bezier(.2,.8,.25,1)",
+          transform: open ? "translateY(0)" : "translateY(105%)",
+          transition: "transform 0.55s cubic-bezier(.2,.8,.25,1)",
           background: PAPER,
-          boxShadow: "6px 0 30px rgba(0,0,0,0.4)",
+          borderRadius: "10px 10px 0 0",
+          boxShadow: "0 -6px 30px rgba(0,0,0,0.45)",
           display: "flex",
           flexDirection: "column",
           backgroundImage:
