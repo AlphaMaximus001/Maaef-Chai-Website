@@ -133,7 +133,7 @@ const RAIN_FILTER = "saturate(0.62) brightness(0.8) contrast(0.97)";
 const RAIN_WASH =
   "radial-gradient(circle at 50% 35%, rgba(112,132,150,0.5), rgba(112,132,150,0) 72%)";
 
-const PLAYLIST_ID = "PLJwtI1xb0Z_YSjwpW6zQVQkr6TWb_7GRP";
+const PLAYLIST_ID = "PLa628Dr7zxEg";
 const LS_TAPRI = "nautapri.tapri";
 const LS_STATE = "nautapri.state";
 const LS_RAIN = "nautapri.rain";
