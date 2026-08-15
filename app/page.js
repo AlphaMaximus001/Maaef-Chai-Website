@@ -1460,8 +1460,8 @@ export default function Page() {
 
         .viewers {
           position: fixed;
-          left: 20px;
-          top: 62px;
+          right: 20px;
+          top: 22px;
           z-index: 20;
           display: flex;
           align-items: center;
