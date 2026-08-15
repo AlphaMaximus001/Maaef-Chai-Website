@@ -52,7 +52,7 @@ const TAPRIS = [
   },
   {
     id: "satyam",
-    name: "Satyam Chai Wala",
+    name: "System Chai Wala",
     area: "Vipul Khand, Gomti Nagar",
     note: "shaam ka adda, gate ke bahar ka table.",
   },
