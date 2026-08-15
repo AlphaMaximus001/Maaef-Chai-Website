@@ -1202,11 +1202,11 @@ export default function Page() {
         }
         .chit-next:hover { transform: translateY(-50%) rotate(-2deg) scale(1.12); }
         .chit-open {
-          left: 24px;
+          left: 50%;
           bottom: 6px;
-          transform: rotate(2deg);
+          transform: translateX(-50%) rotate(2deg);
         }
-        .chit-open:hover { transform: rotate(2deg) scale(1.12); }
+        .chit-open:hover { transform: translateX(-50%) rotate(2deg) scale(1.12); }
         @keyframes fadeUp {
           from { opacity: 0; transform: rotate(-1.2deg) translateY(10px); }
           to   { opacity: 1; transform: rotate(-1.2deg) translateY(0); }
