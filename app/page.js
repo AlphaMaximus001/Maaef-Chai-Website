@@ -1125,7 +1125,7 @@ export default function Page() {
             repeating-linear-gradient(rgba(23,18,14,0) 0 26px, rgba(23,18,14,0.08) 26px 27px);
           color: ${INK};
           border-radius: 4px 8px 8px 4px;
-          padding: 16px 14px 14px 28px;
+          padding: 16px 58px 42px 28px;
           transform: rotate(-1.2deg);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
           animation: fadeUp 0.8s ease both;
@@ -1170,17 +1170,11 @@ export default function Page() {
           margin-top: 6px;
           line-height: 1.4;
         }
-        .chit-arrows {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          justify-content: center;
-          flex-shrink: 0;
-        }
+        /* arrows drawn on the paper in pen — no chrome, just ink strokes */
         .chit-arrow {
-          width: 38px; height: 38px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(180,85,47,0.55);
+          position: absolute;
+          padding: 4px;
+          border: none;
           background: transparent;
           color: ${CLAY};
           cursor: pointer;
@@ -1188,9 +1182,21 @@ export default function Page() {
           align-items: center;
           justify-content: center;
           font: inherit;
-          transition: background 0.2s ease, transform 0.2s ease;
+          transition: transform 0.2s ease, color 0.2s ease;
         }
-        .chit-arrow:hover { background: rgba(180,85,47,0.13); transform: scale(1.06); }
+        .chit-arrow:hover { color: #8f3f1f; }
+        .chit-next {
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%) rotate(-2deg);
+        }
+        .chit-next:hover { transform: translateY(-50%) rotate(-2deg) scale(1.12); }
+        .chit-open {
+          left: 24px;
+          bottom: 6px;
+          transform: rotate(2deg);
+        }
+        .chit-open:hover { transform: rotate(2deg) scale(1.12); }
         @keyframes fadeUp {
           from { opacity: 0; transform: rotate(-1.2deg) translateY(10px); }
           to   { opacity: 1; transform: rotate(-1.2deg) translateY(0); }
@@ -1385,10 +1391,9 @@ export default function Page() {
             left: 16px;
             bottom: 16px;
             width: min(360px, calc(100vw - 32px));
-            padding: 12px 12px 12px 24px;
+            padding: 12px 50px 38px 24px;
           }
           .chit-note { display: none; }
-          .chit-arrow { width: 34px; height: 34px; }
         }
 
         /* ---------- reduced motion ---------- */
@@ -1507,29 +1512,29 @@ export default function Page() {
           <div className="chit-area">{active.area}</div>
           <div className="chit-note">{active.note}</div>
         </div>
-        <div className="chit-arrows">
-          <button
-            className="chit-arrow"
-            onClick={nextTapri}
-            aria-label="agli tapri"
-            title="agli tapri"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 12h15M13 6l6 6-6 6" />
-            </svg>
-          </button>
-          <button
-            className="chit-arrow"
-            onClick={() => setDrawerOpen(true)}
-            aria-haspopup="dialog"
-            aria-label="register kholo — tapri chuno"
-            title="register kholo"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 4v15M6 13l6 6 6-6" />
-            </svg>
-          </button>
-        </div>
+        <button
+          className="chit-arrow chit-next"
+          onClick={nextTapri}
+          aria-label="agli tapri"
+          title="agli tapri"
+        >
+          <svg width="36" height="24" viewBox="0 0 36 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.5 13.5 C 10 11.5, 20 12.5, 31 12" />
+            <path d="M24 5.5 C 26.5 8, 29 10.5, 31.8 12 C 28.5 13.5, 26 16, 24 18.8" />
+          </svg>
+        </button>
+        <button
+          className="chit-arrow chit-open"
+          onClick={() => setDrawerOpen(true)}
+          aria-haspopup="dialog"
+          aria-label="register kholo — tapri chuno"
+          title="register kholo"
+        >
+          <svg width="24" height="32" viewBox="0 0 24 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12.5 3.5 C 11 10, 12.5 18, 12 27" />
+            <path d="M5 20.5 C 7.5 23, 10 25.5, 12 28.3 C 14 25.5, 16.5 23, 19 20.5" />
+          </svg>
+        </button>
       </div>
 
       <MusicPlayer />
