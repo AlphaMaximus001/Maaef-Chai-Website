@@ -18,54 +18,63 @@ const TAPRIS = [
     id: "ashfaq",
     name: "Ashfaq Tea & Lassi Corner",
     area: "Hussainabad",
+    coords: null,
     note: "purani Lucknow ka ek kona, subah subah bhaap uthti hai.",
   },
   {
     id: "keval",
     name: "Ram Kewal Tea Stall",
     area: "Makbara Road, Hazratganj",
+    coords: null,
     note: "chhoti si dukaan, lambi line — waise hi chalta aaya hai.",
   },
   {
     id: "shukla",
     name: "Shukla Tea Stall",
     area: "Hazratganj",
+    coords: null,
     note: "Ganj ki bheed ke beech, ek kulhad thaam lo, sab thehar jaata hai.",
   },
   {
     id: "sharma",
     name: "Sharma Ji Ki Chai",
     area: "T.N. Road, Lalbagh",
+    coords: null,
     note: "office jaate waqt ka thehraav, roz ka rasta yahin se hoke.",
   },
   {
     id: "globe",
     name: "Globe Cafe",
     area: "Meergunj",
+    coords: null,
     note: "purana naam, purana kaam — chai wahi, andaaz wahi.",
   },
   {
     id: "raj",
     name: "Raj Coffee Corner",
     area: "Rana Pratap Marg",
+    coords: null,
     note: "naam mein coffee hai, dil chai mein hai.",
   },
   {
     id: "satyam",
     name: "System Chai Wala",
     area: "Vipul Khand, Gomti Nagar",
+    coords: null,
     note: "shaam ka adda, gate ke bahar ka table.",
   },
   {
     id: "sonu",
     name: "Sonu Tea Stall",
     area: "Vipin Khand, Gomti Nagar",
+    coords: null,
     note: "mohalle wali chai, sabko naam se pehchaanta hai.",
   },
   {
     id: "nukkad",
     name: "Nukkad",
     area: "Gomti Nagar",
+    coords: null,
     note: "naam mein hi sab kuch — nukkad pe milte hain.",
   },
 ];
@@ -151,6 +160,19 @@ function parseSongArtist(rawTitle, author) {
     return { song: first, artist: last || cleanAuthor };
   }
   return { song: first, artist: cleanAuthor };
+}
+
+/*
+ * Google Maps link for a tapri. Once `coords` holds [lat, lng] the link
+ * drops the viewer on that exact point; until then it falls back to a
+ * name + area search, which finds the place without asserting a pin.
+ */
+function mapsHref(t) {
+  if (Array.isArray(t.coords) && t.coords.length === 2) {
+    return `https://www.google.com/maps/search/?api=1&query=${t.coords[0]},${t.coords[1]}`;
+  }
+  const q = encodeURIComponent(`${t.name}, ${t.area}, Lucknow`);
+  return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
 function detectStateFromIST() {
@@ -1165,6 +1187,19 @@ export default function Page() {
           line-height: 1.15;
           color: ${INK};
         }
+        /* map pin, sized off the stall name so it scales with it */
+        .chit-pin {
+          display: inline-block;
+          width: 0.5em;
+          height: 0.66em;
+          margin-left: 0.26em;
+          color: ${RED};
+          opacity: 0.9;
+          transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .chit-pin svg { display: block; width: 100%; height: 100%; }
+        .chit-pin:hover { opacity: 1; transform: translateY(-2px); }
+
         .chit-area {
           font-family: 'Familjen Grotesk', sans-serif;
           font-size: 11px;
@@ -1526,7 +1561,22 @@ export default function Page() {
       <div className="chit" key={active.id}>
         <div className="chit-body">
           <div className="chit-k">गेड़ी रजिस्टर</div>
-          <div className="chit-name">{active.name}</div>
+          <div className="chit-name">
+            {active.name}
+            <a
+              className="chit-pin"
+              href={mapsHref(active)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${active.name} — map par dekho`}
+              title="map par dekho"
+            >
+              <svg viewBox="0 0 24 32" fill="currentColor" fillRule="evenodd" aria-hidden="true">
+                <path d="M12.1 29.8 C 11.2 26.5, 8.9 23.4, 7.2 20.6 C 5.8 18.3, 5.0 16.3, 5.1 13.9 C 5.3 9.5, 8.4 6.0, 12.3 6.1 C 16.1 6.2, 19.1 9.6, 19.0 14.0 C 18.9 16.6, 17.9 18.7, 16.3 21.2 C 14.6 23.9, 12.8 26.7, 12.1 29.8 Z
+                         M15.2 13.6 A 3.1 3.1 0 1 1 9.0 13.6 A 3.1 3.1 0 1 1 15.2 13.6 Z" />
+              </svg>
+            </a>
+          </div>
           <div className="chit-area">{active.area}</div>
           <div className="chit-note">{active.note}</div>
         </div>
