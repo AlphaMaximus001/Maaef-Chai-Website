@@ -1354,7 +1354,7 @@ export default function Page() {
         .credit:hover { opacity: 1; transform: scale(1.04); }
         .credit img {
           display: block;
-          height: 30px;
+          height: 39px;
           width: auto;
           filter: drop-shadow(0 1px 7px rgba(0,0,0,0.75));
         }
