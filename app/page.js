@@ -657,6 +657,10 @@ function MusicPlayer() {
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [track, setTrack] = useState({ song: "", artist: "", videoId: "" });
+  /* the bar shrinks to prev / thumbnail / next once the pointer has left it
+     alone for a while; the thumbnail carries play-pause in that state */
+  const [compact, setCompact] = useState(false);
+  const idleRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -733,6 +737,18 @@ function MusicPlayer() {
     };
   }, []);
 
+  /* any attention on the bar wakes it and restarts the countdown */
+  function poke() {
+    setCompact((c) => (c ? false : c));
+    clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => setCompact(true), 10_000);
+  }
+
+  useEffect(() => {
+    idleRef.current = setTimeout(() => setCompact(true), 10_000);
+    return () => clearTimeout(idleRef.current);
+  }, []);
+
   function toggle() {
     const p = playerRef.current;
     if (!p) return;
@@ -753,10 +769,16 @@ function MusicPlayer() {
   }
 
   return (
-    <div className="player">
+    <div
+      className={`player${compact ? " compact" : ""}`}
+      onPointerEnter={poke}
+      onPointerMove={poke}
+      onPointerDown={poke}
+      onFocusCapture={poke}
+    >
       <div ref={containerRef} style={{ width: 1, height: 1, overflow: "hidden" }} />
       <button
-        className="pbtn-side"
+        className="pbtn-side pbtn-prev"
         onClick={() => skip(-1)}
         disabled={!ready}
         aria-label="pichla gaana"
@@ -782,7 +804,7 @@ function MusicPlayer() {
         </button>
       </div>
       <button
-        className="pbtn-side"
+        className="pbtn-side pbtn-next"
         onClick={() => skip(1)}
         disabled={!ready}
         aria-label="agla gaana"
@@ -799,9 +821,11 @@ function MusicPlayer() {
             : "via YouTube — plays go to the artist"}
         </div>
       </div>
-      <div
-        className={`player-art${playing ? " spin" : ""}`}
-        aria-hidden="true"
+      <button
+        className={`player-art${playing && !compact ? " spin" : ""}`}
+        onClick={toggle}
+        disabled={!ready}
+        aria-label={playing ? "pause" : "play"}
         style={
           track.videoId
             ? {
@@ -810,8 +834,9 @@ function MusicPlayer() {
             : undefined
         }
       >
-        {!track.videoId && "♪"}
-      </div>
+        {!track.videoId && <span className="player-art-note">♪</span>}
+        <span className="player-art-glyph">{playing ? "❚❚" : "▶"}</span>
+      </button>
     </div>
   );
 }
@@ -1017,6 +1042,12 @@ export default function Page() {
            aspect ratios.) Every chrome dimension below is a multiple of it. */
         :root {
           --u: clamp(0.36px, calc(0.0357vw + 0.0588vh), 1.08px);
+          /* control sizes carry pixel floors so tap targets survive on
+             small screens; the collapsed bar width is built from them */
+          --btn-main: max(34px, calc(42 * var(--u)));
+          --btn-side: max(26px, calc(32 * var(--u)));
+          --art:      max(30px, calc(54 * var(--u)));
+          --pgap:     calc(8 * var(--u));
         }
 
         * { box-sizing: border-box; }
@@ -1356,7 +1387,7 @@ export default function Page() {
           z-index: 30;
           display: flex;
           align-items: center;
-          gap: calc(8 * var(--u));
+          gap: var(--pgap);
           background: rgba(23,18,14,0.55);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
@@ -1365,11 +1396,12 @@ export default function Page() {
           padding: calc(8 * var(--u)) calc(8 * var(--u))
                    calc(8 * var(--u)) calc(10 * var(--u));
           width: min(calc(548 * var(--u)), 94vw);
+          transition: width 0.4s cubic-bezier(.2,.8,.25,1);
         }
         .player-btn-wrap { position: relative; flex-shrink: 0; }
         .player-btn {
-          width: max(34px, calc(42 * var(--u)));
-          height: max(34px, calc(42 * var(--u)));
+          width: var(--btn-main);
+          height: var(--btn-main);
           border-radius: 50%;
           border: none;
           background: ${RED};
@@ -1386,8 +1418,8 @@ export default function Page() {
         .player-btn:disabled { opacity: 0.5; cursor: default; }
 
         .pbtn-side {
-          width: max(26px, calc(32 * var(--u)));
-          height: max(26px, calc(32 * var(--u)));
+          width: var(--btn-side);
+          height: var(--btn-side);
           flex-shrink: 0;
           border-radius: 50%;
           border: none;
@@ -1406,8 +1438,11 @@ export default function Page() {
         .player-text { flex: 1; min-width: 0; }
 
         .player-art {
-          width: max(30px, calc(54 * var(--u)));
-          height: max(30px, calc(54 * var(--u)));
+          width: var(--art);
+          height: var(--art);
+          position: relative;
+          padding: 0;
+          cursor: pointer;
           flex-shrink: 0;
           margin-left: auto;
           border-radius: 50%;
@@ -1442,6 +1477,39 @@ export default function Page() {
           overflow: hidden;
           text-overflow: ellipsis;
         }
+
+        /* ---- collapsed bar: prev / thumbnail / next ---- */
+        .player.compact {
+          width: calc(
+            calc(10 * var(--u)) + var(--btn-side) + var(--pgap) +
+            var(--art) + var(--pgap) + var(--btn-side) + calc(8 * var(--u))
+          );
+        }
+        .player.compact .player-btn-wrap,
+        .player.compact .player-text { display: none; }
+        /* the thumbnail takes the middle slot between the two skips */
+        .player.compact .pbtn-prev { order: 1; }
+        .player.compact .player-art  { order: 2; margin-left: 0; }
+        .player.compact .pbtn-next   { order: 3; }
+
+        .player-art-glyph {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          font-size: max(10px, calc(13 * var(--u)));
+          color: ${PAPER};
+          background: rgba(23,18,14,0.42);
+          text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+        .player.compact .player-art-glyph { opacity: 1; }
+        .player-art:hover .player-art-glyph { opacity: 1; }
+        .player-art-note { font-size: max(12px, calc(17 * var(--u))); }
 
         .steam {
           position: absolute;
