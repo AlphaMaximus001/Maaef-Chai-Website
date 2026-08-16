@@ -1204,7 +1204,9 @@ export default function Page() {
           display: flex;
           gap: 10px;
           align-items: stretch;
-          width: min(460px, calc(100vw - 44px));
+          /* vmin, not vw: on a landscape phone the scarce axis is height,
+             and width-only sizing made this fill the screen */
+          width: min(clamp(200px, 55vmin, 460px), calc(100vw - 44px));
           font-family: 'Kalam', cursive;
           background: ${PAPER};
           background-image:
@@ -1213,10 +1215,11 @@ export default function Page() {
           /* the margin stripe runs the full height, but the ruled lines stop
              short so there is a genuine last line with clear paper under it */
           background-repeat: no-repeat, no-repeat;
-          background-size: 100% 100%, 100% calc(100% - 36px);
+          background-size: 100% 100%, 100% calc(100% - clamp(18px, 4vmin, 36px));
           color: ${INK};
           border-radius: 4px 8px 8px 4px;
-          padding: 16px 44px 36px 28px;
+          padding: clamp(7px, 1.9vmin, 16px) clamp(22px, 5.2vmin, 44px)
+                   clamp(16px, 4.2vmin, 36px) clamp(15px, 3.3vmin, 28px);
           transform: rotate(-1.2deg);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
           animation: fadeUp 0.8s ease both;
@@ -1234,7 +1237,7 @@ export default function Page() {
         .chit-body { flex: 1; min-width: 0; }
         .chit-k {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 10px;
+          font-size: clamp(8px, 1.2vmin, 10px);
           letter-spacing: 0.08em;
           color: #7a6a52;
           margin-bottom: 3px;
@@ -1242,8 +1245,8 @@ export default function Page() {
         .chit-name {
           font-family: 'Kalam', cursive;
           font-weight: 700;
-          font-size: clamp(22px, 3vw, 34px);
-          line-height: 1.15;
+          font-size: clamp(15px, 4vmin, 34px);
+          line-height: 1.14;
           color: ${INK};
         }
         /* map pin, sized off the stall name so it scales with it */
@@ -1262,7 +1265,7 @@ export default function Page() {
 
         .chit-area {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 11px;
+          font-size: clamp(8.5px, 1.3vmin, 11px);
           letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #7a6a52;
@@ -1270,7 +1273,7 @@ export default function Page() {
         }
         .chit-note {
           font-family: 'Kalam', cursive;
-          font-size: 13.5px;
+          font-size: clamp(11px, 1.6vmin, 13.5px);
           color: #4a3a28;
           margin-top: 6px;
           line-height: 1.4;
@@ -1310,7 +1313,7 @@ export default function Page() {
 
         .pills {
           display: flex;
-          gap: 5px;
+          gap: clamp(3px, 0.6vmin, 5px);
           background: rgba(23,18,14,0.5);
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
@@ -1321,8 +1324,8 @@ export default function Page() {
         .pill {
           font: inherit;
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 14px;
-          padding: 8px 15px;
+          font-size: clamp(11px, 1.65vmin, 14px);
+          padding: clamp(5px, 0.95vmin, 8px) clamp(9px, 1.8vmin, 15px);
           border-radius: 999px;
           border: none;
           cursor: pointer;
@@ -1348,12 +1351,14 @@ export default function Page() {
           -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(237,226,203,0.15);
           border-radius: 999px;
-          padding: 8px 8px 8px 10px;
-          width: min(548px, 92vw);
+          padding: clamp(5px, 0.95vmin, 8px) clamp(5px, 0.95vmin, 8px)
+                   clamp(5px, 0.95vmin, 8px) clamp(7px, 1.2vmin, 10px);
+          width: min(clamp(262px, 65vmin, 548px), 94vw);
         }
         .player-btn-wrap { position: relative; flex-shrink: 0; }
         .player-btn {
-          width: 42px; height: 42px;
+          width: clamp(31px, 5vmin, 42px);
+          height: clamp(31px, 5vmin, 42px);
           border-radius: 50%;
           border: none;
           background: ${RED};
@@ -1370,7 +1375,8 @@ export default function Page() {
         .player-btn:disabled { opacity: 0.5; cursor: default; }
 
         .pbtn-side {
-          width: 32px; height: 32px;
+          width: clamp(24px, 3.8vmin, 32px);
+          height: clamp(24px, 3.8vmin, 32px);
           flex-shrink: 0;
           border-radius: 50%;
           border: none;
@@ -1389,7 +1395,8 @@ export default function Page() {
         .player-text { flex: 1; min-width: 0; }
 
         .player-art {
-          width: 54px; height: 54px;
+          width: clamp(34px, 6.4vmin, 54px);
+          height: clamp(34px, 6.4vmin, 54px);
           flex-shrink: 0;
           margin-left: auto;
           border-radius: 50%;
@@ -1409,7 +1416,7 @@ export default function Page() {
         .player-song {
           font-family: 'Familjen Grotesk', sans-serif;
           font-weight: 600;
-          font-size: 12.5px;
+          font-size: clamp(10.5px, 1.5vmin, 12.5px);
           color: ${PAPER};
           white-space: nowrap;
           overflow: hidden;
@@ -1417,7 +1424,7 @@ export default function Page() {
         }
         .player-artist {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 10.5px;
+          font-size: clamp(8.5px, 1.25vmin, 10.5px);
           color: ${STEEL};
           margin-top: 1px;
           white-space: nowrap;
@@ -1577,50 +1584,61 @@ export default function Page() {
           outline-offset: 2px;
         }
 
-        /* ---------- responsive ---------- */
+        /* ---------- responsive ----------
+           Sizes above are vmin-based and already shrink with the smaller
+           viewport edge. These rules only handle placement, and drop the
+           lines that stop earning their space on a small screen. */
 
         @media (max-width: 780px) {
           /* the top-centre player crowds the corner credit */
-          .credit, .viewers { display: none; }
+          .credit { display: none; }
         }
         @media (max-width: 900px) {
-          .player { top: 12px; width: min(548px, 94vw); }
+          .player { top: 12px; }
           /* pills tuck under the player's right edge, stacked */
           .controls-br {
             right: 12px;
             bottom: auto;
-            top: 82px;
+            top: calc(clamp(31px, 5vmin, 42px) + clamp(10px, 1.9vmin, 16px) + 28px);
             flex-direction: column;
             align-items: flex-end;
           }
         }
-        @media (max-width: 640px) {
-          .pill { font-size: 12px; padding: 6px 10px; }
-          .player-art { width: 46px; height: 46px; }
-          .player-btn { width: 38px; height: 38px; }
-          /* about half the footprint of the desktop chit — every dimension
-             comes down, not just the width, so it stops dominating */
+
+        /* short viewport — a phone held landscape. Height is the scarce
+           axis here, so shed the optional lines and tighten the margins. */
+        @media (max-height: 460px) {
           .chit {
-            left: 14px;
-            bottom: 14px;
-            width: min(240px, calc(100vw - 28px));
-            padding: 7px 24px 18px 16px;
+            left: 12px;
+            bottom: 12px;
             border-radius: 3px 6px 6px 3px;
             background-image:
               linear-gradient(90deg, rgba(0,0,0,0) 10px, rgba(180,85,47,0.55) 10px, rgba(180,85,47,0.55) 11px, rgba(0,0,0,0) 11px),
               repeating-linear-gradient(rgba(23,18,14,0) 0 17px, rgba(23,18,14,0.08) 17px 18px);
-            background-size: 100% 100%, 100% calc(100% - 18px);
           }
           .chit::before { width: 4px; height: 4px; margin-left: -2px; top: 4px; }
-          .chit-k { display: none; }
-          .chit-name { font-size: 15.5px; line-height: 1.12; }
-          .chit-area { font-size: 8.5px; letter-spacing: 0.1em; margin-top: 3px; }
-          .chit-note { display: none; }
-          .chit-pin { width: 0.46em; height: 0.6em; margin-left: 0.22em; }
-          .chit-next { right: 6px; }
-          .chit-next svg { width: 13px; height: 19px; }
-          .chit-open { bottom: 3px; }
-          .chit-open svg { width: 19px; height: 13px; }
+          .chit-k, .chit-note { display: none; }
+          .chit-area { letter-spacing: 0.1em; margin-top: 3px; }
+          .player { top: 8px; }
+          .player-artist { display: none; }
+          .controls-br { top: auto; bottom: 12px; right: 12px; flex-direction: row; }
+          .viewers { top: 14px; right: 14px; }
+        }
+
+        /* narrow viewport — a phone held portrait */
+        @media (max-width: 640px) {
+          .chit {
+            left: 14px;
+            bottom: 14px;
+            border-radius: 3px 6px 6px 3px;
+            background-image:
+              linear-gradient(90deg, rgba(0,0,0,0) 10px, rgba(180,85,47,0.55) 10px, rgba(180,85,47,0.55) 11px, rgba(0,0,0,0) 11px),
+              repeating-linear-gradient(rgba(23,18,14,0) 0 17px, rgba(23,18,14,0.08) 17px 18px);
+          }
+          .chit::before { width: 4px; height: 4px; margin-left: -2px; top: 4px; }
+          .chit-k, .chit-note { display: none; }
+          .chit-area { letter-spacing: 0.1em; margin-top: 3px; }
+          .viewers { display: none; }
         }
 
         /* ---------- reduced motion ---------- */
