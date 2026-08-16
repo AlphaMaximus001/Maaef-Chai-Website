@@ -827,6 +827,7 @@ export default function Page() {
   const [rainOn, setRainOn] = useState(false);
   const [wash, setWash] = useState({ key: 0, bg: "" });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [rotateDismissed, setRotateDismissed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const audioRef = useRef(null);
   const thunderTimersRef = useRef([]);
@@ -1246,6 +1247,7 @@ export default function Page() {
           color: ${INK};
         }
         /* map pin, sized off the stall name so it scales with it */
+        .chit-lastword { white-space: nowrap; }
         .chit-pin {
           display: inline-block;
           width: 0.5em;
@@ -1469,9 +1471,21 @@ export default function Page() {
           font-family: 'Familjen Grotesk', sans-serif;
           font-size: 11px;
           letter-spacing: 0.04em;
+          font-weight: 500;
           color: rgba(237,226,203,0.62);
           text-shadow: 0 1px 8px rgba(0,0,0,0.7);
           pointer-events: none;
+        }
+        /* paint the inverse of whatever sits behind, so the count stays
+           legible over bright sky and dark night alike. white through a
+           difference blend resolves to the negative of the backdrop. */
+        @supports (mix-blend-mode: difference) {
+          .viewers {
+            color: #fff;
+            mix-blend-mode: difference;
+            text-shadow: none;
+          }
+          .viewers-dot { background: #fff; }
         }
         .viewers-dot {
           width: 6px; height: 6px;
@@ -1485,6 +1499,68 @@ export default function Page() {
           70%  { box-shadow: 0 0 0 7px rgba(227,59,51,0); }
           100% { box-shadow: 0 0 0 0 rgba(227,59,51,0); }
         }
+
+        /* portrait phones and tablets: ask for landscape, but never trap
+           anyone whose orientation is locked */
+        .rotate-gate {
+          display: none;
+          position: fixed;
+          inset: 0;
+          z-index: 60;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          padding: 32px;
+          text-align: center;
+          background: rgba(17,13,10,0.94);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          color: ${PAPER};
+        }
+        @media (orientation: portrait) and (max-width: 1024px) and (pointer: coarse) {
+          .rotate-gate { display: flex; }
+          .rotate-gate.dismissed { display: none; }
+        }
+        .rotate-icon {
+          width: 128px;
+          height: 106px;
+          color: ${PAPER};
+          opacity: 0.85;
+          margin-bottom: 14px;
+          animation: rotateHint 3.4s ease-in-out infinite;
+          transform-origin: 50% 50%;
+        }
+        @keyframes rotateHint {
+          0%, 55%, 100% { transform: rotate(0deg); }
+          72%, 88%      { transform: rotate(-12deg); }
+        }
+        .rotate-title {
+          font-family: 'Rozha One', serif;
+          font-size: 30px;
+          letter-spacing: 0.01em;
+        }
+        .rotate-sub {
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 12px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: rgba(237,226,203,0.6);
+          margin-top: 2px;
+        }
+        .rotate-skip {
+          margin-top: 26px;
+          font: inherit;
+          font-family: 'Kalam', cursive;
+          font-size: 13px;
+          color: rgba(237,226,203,0.55);
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid rgba(237,226,203,0.3);
+          padding: 2px 2px 3px;
+          cursor: pointer;
+        }
+        .rotate-skip:hover { color: ${PAPER}; }
 
         .controls-br {
           position: fixed;
@@ -1522,13 +1598,29 @@ export default function Page() {
           .pill { font-size: 12px; padding: 6px 10px; }
           .player-art { width: 46px; height: 46px; }
           .player-btn { width: 38px; height: 38px; }
+          /* about half the footprint of the desktop chit — every dimension
+             comes down, not just the width, so it stops dominating */
           .chit {
-            left: 16px;
-            bottom: 16px;
-            width: min(360px, calc(100vw - 32px));
-            padding: 12px 40px 32px 24px;
+            left: 14px;
+            bottom: 14px;
+            width: min(240px, calc(100vw - 28px));
+            padding: 7px 24px 18px 16px;
+            border-radius: 3px 6px 6px 3px;
+            background-image:
+              linear-gradient(90deg, rgba(0,0,0,0) 10px, rgba(180,85,47,0.55) 10px, rgba(180,85,47,0.55) 11px, rgba(0,0,0,0) 11px),
+              repeating-linear-gradient(rgba(23,18,14,0) 0 17px, rgba(23,18,14,0.08) 17px 18px);
+            background-size: 100% 100%, 100% calc(100% - 18px);
           }
+          .chit::before { width: 4px; height: 4px; margin-left: -2px; top: 4px; }
+          .chit-k { display: none; }
+          .chit-name { font-size: 15.5px; line-height: 1.12; }
+          .chit-area { font-size: 8.5px; letter-spacing: 0.1em; margin-top: 3px; }
           .chit-note { display: none; }
+          .chit-pin { width: 0.46em; height: 0.6em; margin-left: 0.22em; }
+          .chit-next { right: 6px; }
+          .chit-next svg { width: 13px; height: 19px; }
+          .chit-open { bottom: 3px; }
+          .chit-open svg { width: 19px; height: 13px; }
         }
 
         /* ---------- reduced motion ---------- */
@@ -1656,20 +1748,25 @@ export default function Page() {
         <div className="chit-body">
           <div className="chit-k">गेड़ी रजिस्टर</div>
           <div className="chit-name">
-            {active.name}
-            <a
-              className="chit-pin"
-              href={mapsHref(active)}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`${active.name} — map par dekho`}
-              title="map par dekho"
-            >
-              <svg viewBox="0 0 24 32" fill="currentColor" fillRule="evenodd" aria-hidden="true">
-                <path d="M12.1 29.8 C 11.2 26.5, 8.9 23.4, 7.2 20.6 C 5.8 18.3, 5.0 16.3, 5.1 13.9 C 5.3 9.5, 8.4 6.0, 12.3 6.1 C 16.1 6.2, 19.1 9.6, 19.0 14.0 C 18.9 16.6, 17.9 18.7, 16.3 21.2 C 14.6 23.9, 12.8 26.7, 12.1 29.8 Z
-                         M15.2 13.6 A 3.1 3.1 0 1 1 9.0 13.6 A 3.1 3.1 0 1 1 15.2 13.6 Z" />
-              </svg>
-            </a>
+            {/* the pin rides with the last word so it can never be
+                left stranded alone on a wrapped line */}
+            {active.name.split(" ").slice(0, -1).join(" ")}{" "}
+            <span className="chit-lastword">
+              {active.name.split(" ").slice(-1)[0]}
+              <a
+                className="chit-pin"
+                href={mapsHref(active)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${active.name} — map par dekho`}
+                title="map par dekho"
+              >
+                <svg viewBox="0 0 24 32" fill="currentColor" fillRule="evenodd" aria-hidden="true">
+                  <path d="M12.1 29.8 C 11.2 26.5, 8.9 23.4, 7.2 20.6 C 5.8 18.3, 5.0 16.3, 5.1 13.9 C 5.3 9.5, 8.4 6.0, 12.3 6.1 C 16.1 6.2, 19.1 9.6, 19.0 14.0 C 18.9 16.6, 17.9 18.7, 16.3 21.2 C 14.6 23.9, 12.8 26.7, 12.1 29.8 Z
+                           M15.2 13.6 A 3.1 3.1 0 1 1 9.0 13.6 A 3.1 3.1 0 1 1 15.2 13.6 Z" />
+                </svg>
+              </a>
+            </span>
           </div>
           <div className="chit-area">{active.area}</div>
           <div className="chit-note">{active.note}</div>
@@ -1711,6 +1808,25 @@ export default function Page() {
       )}
 
       <MusicPlayer />
+
+      <div className={`rotate-gate${rotateDismissed ? " dismissed" : ""}`} role="dialog" aria-label="phone ghumao">
+        <svg className="rotate-icon" viewBox="0 0 120 100" fill="none" stroke="currentColor"
+             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {/* upright phone, and the same phone laid down */}
+          <rect x="26" y="16" width="30" height="52" rx="5" strokeWidth="2.4" />
+          <line x1="36" y1="62" x2="46" y2="62" strokeWidth="2.2" />
+          <rect x="64" y="34" width="52" height="30" rx="5" strokeWidth="2.4" opacity="0.5" />
+          <line x1="110" y1="43" x2="110" y2="53" strokeWidth="2.2" opacity="0.5" />
+          {/* turning arrow */}
+          <path d="M40 82 C 58 94, 84 92, 100 78" strokeWidth="2.2" />
+          <path d="M94 71 C 97 74.5, 100 77, 103 78.4 C 99.6 80, 96.6 82.6, 94.2 85.6" strokeWidth="2.2" />
+        </svg>
+        <div className="rotate-title">phone ghumao</div>
+        <div className="rotate-sub">rotate for a better experience</div>
+        <button className="rotate-skip" onClick={() => setRotateDismissed(true)}>
+          waise hi dekhna hai
+        </button>
+      </div>
 
       <RegisterDrawer
         open={drawerOpen}
