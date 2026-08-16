@@ -1010,6 +1010,15 @@ export default function Page() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rozha+One&family=Kalam:wght@400;700&family=Familjen+Grotesk:wght@400;500;600&display=swap');
 
+        /* --u is the scaling unit: exactly 1px at the 1400x850 desktop
+           reference, falling off with the square root of viewport area so
+           chrome keeps the same share of the screen as it shrinks.
+           (0.0357vw + 0.0588vh tracks sqrt(area) to within ~1% at ordinary
+           aspect ratios.) Every chrome dimension below is a multiple of it. */
+        :root {
+          --u: clamp(0.36px, calc(0.0357vw + 0.0588vh), 1.08px);
+        }
+
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: ${INK}; }
 
@@ -1198,15 +1207,17 @@ export default function Page() {
 
         .chit {
           position: fixed;
-          left: 22px;
-          bottom: 24px;
+          left: calc(22 * var(--u));
+          bottom: calc(24 * var(--u));
           z-index: 20;
           display: flex;
-          gap: 10px;
+          gap: calc(10 * var(--u));
           align-items: stretch;
           /* vmin, not vw: on a landscape phone the scarce axis is height,
              and width-only sizing made this fill the screen */
-          width: min(clamp(200px, 55vmin, 460px), calc(100vw - 44px));
+          /* the 64vw cap only bites on a narrow portrait screen, where
+             holding the area share would otherwise make this too wide */
+          width: min(calc(460 * var(--u)), 64vw, calc(100vw - 44px));
           font-family: 'Kalam', cursive;
           background: ${PAPER};
           background-image:
@@ -1215,11 +1226,11 @@ export default function Page() {
           /* the margin stripe runs the full height, but the ruled lines stop
              short so there is a genuine last line with clear paper under it */
           background-repeat: no-repeat, no-repeat;
-          background-size: 100% 100%, 100% calc(100% - clamp(18px, 4vmin, 36px));
+          background-size: 100% 100%, 100% calc(100% - 36 * var(--u));
           color: ${INK};
           border-radius: 4px 8px 8px 4px;
-          padding: clamp(7px, 1.9vmin, 16px) clamp(22px, 5.2vmin, 44px)
-                   clamp(16px, 4.2vmin, 36px) clamp(15px, 3.3vmin, 28px);
+          padding: calc(16 * var(--u)) calc(44 * var(--u))
+                   calc(36 * var(--u)) calc(28 * var(--u));
           transform: rotate(-1.2deg);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
           animation: fadeUp 0.8s ease both;
@@ -1227,9 +1238,9 @@ export default function Page() {
         .chit::before {
           content: "";
           position: absolute;
-          top: 6px; left: 50%;
-          width: 6px; height: 6px;
-          margin-left: -3px;
+          top: calc(6 * var(--u)); left: 50%;
+          width: calc(6 * var(--u)); height: calc(6 * var(--u));
+          margin-left: calc(-3 * var(--u));
           border-radius: 50%;
           background: rgba(23,18,14,0.5);
           box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
@@ -1237,7 +1248,7 @@ export default function Page() {
         .chit-body { flex: 1; min-width: 0; }
         .chit-k {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: clamp(8px, 1.2vmin, 10px);
+          font-size: max(8px, calc(10 * var(--u)));
           letter-spacing: 0.08em;
           color: #7a6a52;
           margin-bottom: 3px;
@@ -1245,7 +1256,7 @@ export default function Page() {
         .chit-name {
           font-family: 'Kalam', cursive;
           font-weight: 700;
-          font-size: clamp(15px, 4vmin, 34px);
+          font-size: max(14px, calc(34 * var(--u)));
           line-height: 1.14;
           color: ${INK};
         }
@@ -1265,7 +1276,7 @@ export default function Page() {
 
         .chit-area {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: clamp(8.5px, 1.3vmin, 11px);
+          font-size: max(8.5px, calc(11 * var(--u)));
           letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #7a6a52;
@@ -1273,7 +1284,7 @@ export default function Page() {
         }
         .chit-note {
           font-family: 'Kalam', cursive;
-          font-size: clamp(11px, 1.6vmin, 13.5px);
+          font-size: max(10.5px, calc(13.5 * var(--u)));
           color: #4a3a28;
           margin-top: 6px;
           line-height: 1.4;
@@ -1313,7 +1324,7 @@ export default function Page() {
 
         .pills {
           display: flex;
-          gap: clamp(3px, 0.6vmin, 5px);
+          gap: max(3px, calc(5 * var(--u)));
           background: rgba(23,18,14,0.5);
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
@@ -1324,8 +1335,8 @@ export default function Page() {
         .pill {
           font: inherit;
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: clamp(11px, 1.65vmin, 14px);
-          padding: clamp(5px, 0.95vmin, 8px) clamp(9px, 1.8vmin, 15px);
+          font-size: max(11px, calc(14 * var(--u)));
+          padding: max(5px, calc(8 * var(--u))) max(9px, calc(15 * var(--u)));
           border-radius: 999px;
           border: none;
           cursor: pointer;
@@ -1339,26 +1350,26 @@ export default function Page() {
 
         .player {
           position: fixed;
-          top: 18px;
+          top: calc(18 * var(--u));
           left: 50%;
           transform: translateX(-50%);
           z-index: 30;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: calc(8 * var(--u));
           background: rgba(23,18,14,0.55);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(237,226,203,0.15);
           border-radius: 999px;
-          padding: clamp(5px, 0.95vmin, 8px) clamp(5px, 0.95vmin, 8px)
-                   clamp(5px, 0.95vmin, 8px) clamp(7px, 1.2vmin, 10px);
-          width: min(clamp(262px, 65vmin, 548px), 94vw);
+          padding: calc(8 * var(--u)) calc(8 * var(--u))
+                   calc(8 * var(--u)) calc(10 * var(--u));
+          width: min(calc(548 * var(--u)), 94vw);
         }
         .player-btn-wrap { position: relative; flex-shrink: 0; }
         .player-btn {
-          width: clamp(31px, 5vmin, 42px);
-          height: clamp(31px, 5vmin, 42px);
+          width: max(34px, calc(42 * var(--u)));
+          height: max(34px, calc(42 * var(--u)));
           border-radius: 50%;
           border: none;
           background: ${RED};
@@ -1375,8 +1386,8 @@ export default function Page() {
         .player-btn:disabled { opacity: 0.5; cursor: default; }
 
         .pbtn-side {
-          width: clamp(24px, 3.8vmin, 32px);
-          height: clamp(24px, 3.8vmin, 32px);
+          width: max(26px, calc(32 * var(--u)));
+          height: max(26px, calc(32 * var(--u)));
           flex-shrink: 0;
           border-radius: 50%;
           border: none;
@@ -1395,8 +1406,8 @@ export default function Page() {
         .player-text { flex: 1; min-width: 0; }
 
         .player-art {
-          width: clamp(34px, 6.4vmin, 54px);
-          height: clamp(34px, 6.4vmin, 54px);
+          width: max(30px, calc(54 * var(--u)));
+          height: max(30px, calc(54 * var(--u)));
           flex-shrink: 0;
           margin-left: auto;
           border-radius: 50%;
@@ -1416,7 +1427,7 @@ export default function Page() {
         .player-song {
           font-family: 'Familjen Grotesk', sans-serif;
           font-weight: 600;
-          font-size: clamp(10.5px, 1.5vmin, 12.5px);
+          font-size: max(10.5px, calc(12.5 * var(--u)));
           color: ${PAPER};
           white-space: nowrap;
           overflow: hidden;
@@ -1424,7 +1435,7 @@ export default function Page() {
         }
         .player-artist {
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: clamp(8.5px, 1.25vmin, 10.5px);
+          font-size: max(8.5px, calc(10.5 * var(--u)));
           color: ${STEEL};
           margin-top: 1px;
           white-space: nowrap;
@@ -1462,7 +1473,7 @@ export default function Page() {
         .credit:hover { opacity: 1; transform: scale(1.04); }
         .credit img {
           display: block;
-          height: 39px;
+          height: max(22px, calc(39 * var(--u)));
           width: auto;
           filter: drop-shadow(0 1px 7px rgba(0,0,0,0.75));
         }
@@ -1476,7 +1487,7 @@ export default function Page() {
           align-items: center;
           gap: 7px;
           font-family: 'Familjen Grotesk', sans-serif;
-          font-size: 11px;
+          font-size: max(9.5px, calc(11 * var(--u)));
           letter-spacing: 0.04em;
           font-weight: 500;
           color: rgba(237,226,203,0.62);
