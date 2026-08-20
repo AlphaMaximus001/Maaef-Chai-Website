@@ -43,7 +43,7 @@ const TAPRIS = [
     name: "Sharma Ji Ki Chai",
     area: "T.N. Road, Lalbagh",
     maps: "https://maps.app.goo.gl/HqbzZF4Afw2EGAcq6",
-    coords: null,
+    coords: [26.8477398, 80.9406583],
     note: "office jaate waqt ka thehraav, roz ka rasta yahin se hoke.",
   },
   {
@@ -51,7 +51,7 @@ const TAPRIS = [
     name: "Globe Cafe",
     area: "Meergunj",
     maps: "https://maps.app.goo.gl/vBdAyJxSw1Hxqi6N8",
-    coords: null,
+    coords: [26.8401179, 80.9376781],
     note: "purana naam, purana kaam — chai wahi, andaaz wahi.",
   },
   {
@@ -59,7 +59,7 @@ const TAPRIS = [
     name: "Raj Coffee Corner",
     area: "Rana Pratap Marg",
     maps: "https://maps.app.goo.gl/QcSHa65ujidLPGgS8",
-    coords: null,
+    coords: [26.8520149, 80.9545227],
     note: "naam mein coffee hai, dil chai mein hai.",
   },
   {
@@ -75,7 +75,7 @@ const TAPRIS = [
     name: "Sonu Tea Stall",
     area: "Vipin Khand, Gomti Nagar",
     maps: "https://maps.app.goo.gl/x6mYiWaV1qFBuqHp6",
-    coords: null,
+    coords: [26.8666409, 80.997157],
     note: "mohalle wali chai, sabko naam se pehchaanta hai.",
   },
   {
@@ -208,7 +208,7 @@ function nearestTapri(here) {
   let best = null;
   let bestKm = Infinity;
   for (const t of TAPRIS) {
-    if (!Array.isArray(t.coords) || t.coords.length !== 2) continue;
+    if (!hasCoords(t)) continue;
     const km = distanceKm(here, t.coords);
     if (km < bestKm) {
       bestKm = km;
@@ -219,10 +219,17 @@ function nearestTapri(here) {
   return { tapri: best, km: bestKm };
 }
 
+/*
+ * Every stall must be mapped before this runs. With only some of them
+ * placed, the "closest" answer is confidently wrong for anyone standing
+ * near an unmapped one — it would name a stall kilometres away while the
+ * real nearest is across the street. Partial data is worse than none here.
+ */
+const hasCoords = (t) => Array.isArray(t.coords) && t.coords.length === 2;
 const geoReady = () =>
   typeof navigator !== "undefined" &&
   !!navigator.geolocation &&
-  TAPRIS.some((t) => Array.isArray(t.coords) && t.coords.length === 2);
+  TAPRIS.every(hasCoords);
 
 /* heartbeat to /api/presence and report how many tabs are open right now.
    returns null whenever there is no real number to show */
