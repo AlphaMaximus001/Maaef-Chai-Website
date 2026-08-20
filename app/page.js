@@ -19,7 +19,7 @@ const TAPRIS = [
     name: "Ashfaq Tea and Lassi Corner",
     area: "Hussainabad",
     maps: "https://maps.app.goo.gl/LZ9URVi2EE9cwoxE6",
-    coords: null,
+    coords: [26.8748547, 80.9038665],
     note: "purani Lucknow ka ek kona, subah subah bhaap uthti hai.",
   },
   {
@@ -67,7 +67,7 @@ const TAPRIS = [
     name: "System Chai Centre",
     area: "Vipul Khand, Gomti Nagar",
     maps: "https://maps.app.goo.gl/bDGEcYM1oBTSPLsq8",
-    coords: null,
+    coords: [26.8457132, 80.9879168],
     note: "shaam ka adda, gate ke bahar ka table.",
   },
   {
@@ -83,7 +83,7 @@ const TAPRIS = [
     name: "Nukkad Cafe",
     area: "Gomti Nagar",
     maps: "https://maps.app.goo.gl/tXrGMVrnjc22fm17A",
-    coords: null,
+    coords: [26.861739, 81.0096046],
     note: "naam mein hi sab kuch — nukkad pe milte hain.",
   },
 ];
