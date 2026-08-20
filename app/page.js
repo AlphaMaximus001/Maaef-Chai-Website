@@ -27,7 +27,7 @@ const TAPRIS = [
     name: "Kewal Tea Centre",
     area: "Makbara Road, Hazratganj",
     maps: "https://maps.app.goo.gl/bXYnZ4kxY5tS3M5NA",
-    coords: null,
+    coords: [26.8499576, 80.9407454],
     note: "chhoti si dukaan, lambi line — waise hi chalta aaya hai.",
   },
   {
