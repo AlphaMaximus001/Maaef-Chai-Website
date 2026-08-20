@@ -19,6 +19,7 @@ const TAPRIS = [
     name: "Ashfaq Tea and Lassi Corner",
     area: "Hussainabad",
     maps: "https://maps.app.goo.gl/LZ9URVi2EE9cwoxE6",
+    coords: null,
     note: "purani Lucknow ka ek kona, subah subah bhaap uthti hai.",
   },
   {
@@ -26,6 +27,7 @@ const TAPRIS = [
     name: "Kewal Tea Centre",
     area: "Makbara Road, Hazratganj",
     maps: "https://maps.app.goo.gl/bXYnZ4kxY5tS3M5NA",
+    coords: null,
     note: "chhoti si dukaan, lambi line — waise hi chalta aaya hai.",
   },
   {
@@ -33,6 +35,7 @@ const TAPRIS = [
     name: "Shukla Tea Stall",
     area: "Hazratganj",
     maps: "https://maps.app.goo.gl/hYrkS7TGLb4Jp6VR8",
+    coords: null,
     note: "Ganj ki bheed ke beech, ek kulhad thaam lo, sab thehar jaata hai.",
   },
   {
@@ -40,6 +43,7 @@ const TAPRIS = [
     name: "Sharma Ji Ki Chai",
     area: "T.N. Road, Lalbagh",
     maps: "https://maps.app.goo.gl/HqbzZF4Afw2EGAcq6",
+    coords: null,
     note: "office jaate waqt ka thehraav, roz ka rasta yahin se hoke.",
   },
   {
@@ -47,6 +51,7 @@ const TAPRIS = [
     name: "Globe Cafe",
     area: "Meergunj",
     maps: "https://maps.app.goo.gl/vBdAyJxSw1Hxqi6N8",
+    coords: null,
     note: "purana naam, purana kaam — chai wahi, andaaz wahi.",
   },
   {
@@ -54,6 +59,7 @@ const TAPRIS = [
     name: "Raj Coffee Corner",
     area: "Rana Pratap Marg",
     maps: "https://maps.app.goo.gl/QcSHa65ujidLPGgS8",
+    coords: null,
     note: "naam mein coffee hai, dil chai mein hai.",
   },
   {
@@ -61,6 +67,7 @@ const TAPRIS = [
     name: "System Chai Centre",
     area: "Vipul Khand, Gomti Nagar",
     maps: "https://maps.app.goo.gl/bDGEcYM1oBTSPLsq8",
+    coords: null,
     note: "shaam ka adda, gate ke bahar ka table.",
   },
   {
@@ -68,6 +75,7 @@ const TAPRIS = [
     name: "Sonu Tea Stall",
     area: "Vipin Khand, Gomti Nagar",
     maps: "https://maps.app.goo.gl/x6mYiWaV1qFBuqHp6",
+    coords: null,
     note: "mohalle wali chai, sabko naam se pehchaanta hai.",
   },
   {
@@ -75,6 +83,7 @@ const TAPRIS = [
     name: "Nukkad Cafe",
     area: "Gomti Nagar",
     maps: "https://maps.app.goo.gl/tXrGMVrnjc22fm17A",
+    coords: null,
     note: "naam mein hi sab kuch — nukkad pe milte hain.",
   },
 ];
@@ -172,6 +181,48 @@ function mapsHref(t) {
   const q = encodeURIComponent(`${t.name}, ${t.area}, Lucknow`);
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
+
+/*
+ * Nearest-tapri lookup. Great-circle distance, and a radius gate: the nine
+ * stalls are all in Lucknow, so for a visitor anywhere else the "nearest"
+ * one is just whichever edge of the city faces them — meaningless. Beyond
+ * NEAR_KM we decline to guess rather than open an arbitrary stall.
+ * Inert until the coords below are filled in.
+ */
+const NEAR_KM = 60;
+
+function distanceKm(a, b) {
+  const R = 6371;
+  const rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(b[0] - a[0]);
+  const dLon = rad(b[1] - a[1]);
+  const la1 = rad(a[0]);
+  const la2 = rad(b[0]);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function nearestTapri(here) {
+  let best = null;
+  let bestKm = Infinity;
+  for (const t of TAPRIS) {
+    if (!Array.isArray(t.coords) || t.coords.length !== 2) continue;
+    const km = distanceKm(here, t.coords);
+    if (km < bestKm) {
+      bestKm = km;
+      best = t;
+    }
+  }
+  if (!best || bestKm > NEAR_KM) return null;
+  return { tapri: best, km: bestKm };
+}
+
+const geoReady = () =>
+  typeof navigator !== "undefined" &&
+  !!navigator.geolocation &&
+  TAPRIS.some((t) => Array.isArray(t.coords) && t.coords.length === 2);
 
 /* heartbeat to /api/presence and report how many tabs are open right now.
    returns null whenever there is no real number to show */
@@ -503,7 +554,7 @@ function RainBlock({ on, tapri }) {
 
 const DEVANAGARI_DIGITS = ["१", "२", "३", "४", "५", "६", "७", "८", "९"];
 
-function RegisterDrawer({ open, onClose, activeId, onSelect }) {
+function RegisterDrawer({ open, onClose, activeId, onSelect, onLocate, locating }) {
   return (
     <>
       <div
@@ -563,9 +614,17 @@ function RegisterDrawer({ open, onClose, activeId, onSelect }) {
               fontSize: 12,
               color: "#5c4a33",
               marginTop: 2,
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
             }}
           >
-            nau tapri, nau adde
+            <span>nau tapri, nau adde</span>
+            {onLocate && (
+              <button className="reg-near" onClick={onLocate} disabled={locating}>
+                {locating ? "dhoondh rahe hain…" : "sabse paas wali?"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -853,6 +912,9 @@ export default function Page() {
   const [wash, setWash] = useState({ key: 0, bg: "" });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rotateDismissed, setRotateDismissed] = useState(false);
+  /* {id, km} when a stall was opened because it is the closest one */
+  const [near, setNear] = useState(null);
+  const [locating, setLocating] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const audioRef = useRef(null);
   const thunderTimersRef = useRef([]);
@@ -860,6 +922,7 @@ export default function Page() {
 
   useEffect(() => {
     let s;
+    let firstVisit = false;
     try {
       const savedTapri = localStorage.getItem(LS_TAPRI);
       const savedState = localStorage.getItem(LS_STATE);
@@ -870,9 +933,15 @@ export default function Page() {
         s = savedState;
       }
       if (localStorage.getItem(LS_RAIN) === "1") setRainOn(true);
-    } catch (e) {}
+      // only on a first visit — a stall chosen last time outranks geography
+      if (!savedTapri) firstVisit = true;
+    } catch (e) {
+      firstVisit = true;
+    }
     setStateKey(s || detectStateFromIST());
     setHydrated(true);
+    if (firstVisit) locate(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -988,11 +1057,30 @@ export default function Page() {
   }, [rainOn]);
 
   function selectTapri(id) {
+    setNear((n) => (n && n.id !== id ? null : n));
     if (id !== activeId) {
       setPrevId(activeId);
       setActiveId(id);
     }
     setDrawerOpen(false);
+  }
+
+  /* ask the browser where we are and open the closest stall. Silent on
+     refusal or timeout — a denied prompt must not disturb the page. */
+  function locate(manual) {
+    if (!geoReady()) return;
+    if (manual) setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const hit = nearestTapri([pos.coords.latitude, pos.coords.longitude]);
+        if (!hit) return; // too far from Lucknow to mean anything
+        setNear({ id: hit.tapri.id, km: hit.km });
+        selectTapri(hit.tapri.id);
+      },
+      () => setLocating(false),
+      { timeout: 8000, maximumAge: 10 * 60 * 1000, enableHighAccuracy: false }
+    );
   }
 
   function nextTapri() {
@@ -1313,6 +1401,20 @@ export default function Page() {
           color: #7a6a52;
           margin-top: 5px;
         }
+        .chit-near { color: ${CLAY}; margin-left: 4px; letter-spacing: 0.06em; }
+        .reg-near {
+          font: inherit;
+          font-family: 'Familjen Grotesk', sans-serif;
+          font-size: 11px;
+          color: ${CLAY};
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid rgba(180,85,47,0.45);
+          padding: 0 0 1px;
+          cursor: pointer;
+        }
+        .reg-near:disabled { opacity: 0.55; cursor: default; }
+
         .chit-note {
           font-family: 'Kalam', cursive;
           font-size: max(10.5px, calc(13.5 * var(--u)));
@@ -1865,7 +1967,14 @@ export default function Page() {
               </a>
             </span>
           </div>
-          <div className="chit-area">{active.area}</div>
+          <div className="chit-area">
+            {active.area}
+            {near && near.id === active.id && (
+              <span className="chit-near">
+                · aapke sabse paas{near.km >= 0.1 ? `, ${near.km.toFixed(1)} km` : ""}
+              </span>
+            )}
+          </div>
           <div className="chit-note">{active.note}</div>
         </div>
         <button
@@ -1930,6 +2039,8 @@ export default function Page() {
         onClose={() => setDrawerOpen(false)}
         activeId={activeId}
         onSelect={selectTapri}
+        onLocate={geoReady() ? () => locate(true) : null}
+        locating={locating}
       />
     </div>
   );
