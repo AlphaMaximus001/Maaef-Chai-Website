@@ -35,7 +35,7 @@ const TAPRIS = [
     name: "Shukla Tea Stall",
     area: "Hazratganj",
     maps: "https://maps.app.goo.gl/hYrkS7TGLb4Jp6VR8",
-    coords: null,
+    coords: [26.8495549, 80.9429875],
     note: "Ganj ki bheed ke beech, ek kulhad thaam lo, sab thehar jaata hai.",
   },
   {
