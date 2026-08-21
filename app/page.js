@@ -716,11 +716,31 @@ function RegisterDrawer({ open, onClose, activeId, onSelect, onLocate, locating 
 /* music player                                                           */
 /* ---------------------------------------------------------------------- */
 
+/* plain SVG paths — a bare "▶"/"❚❚" character renders as a coloured emoji
+   with its own circular backdrop on iOS Safari, doubling up with the
+   button's own background into the odd ringed icon seen on iPhone */
+function PlayGlyph({ playing, size = "42%" }) {
+  return playing ? (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="6" y="5" width="4.5" height="14" rx="1" />
+      <rect x="13.5" y="5" width="4.5" height="14" rx="1" />
+    </svg>
+  ) : (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M7 4.6v14.8a1 1 0 0 0 1.53.85l11.4-7.4a1 1 0 0 0 0-1.7L8.53 3.75A1 1 0 0 0 7 4.6z" />
+    </svg>
+  );
+}
+
 function MusicPlayer() {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
   const shuffledOnce = useRef(false);
   const [ready, setReady] = useState(false);
+  /* true once we give up waiting for the API — an ad/content blocker, or
+     a network that blocks youtube.com outright, otherwise leaves the
+     controls disabled forever with no explanation */
+  const [blocked, setBlocked] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [track, setTrack] = useState({ song: "", artist: "", videoId: "" });
   /* the bar shrinks to prev / thumbnail / next once the pointer has left it
@@ -746,10 +766,15 @@ function MusicPlayer() {
         },
         events: {
           onReady: () => {
+            clearTimeout(blockedTimer);
             setReady(true);
             try {
               playerRef.current.setShuffle(true);
             } catch (e) {}
+          },
+          onError: () => {
+            clearTimeout(blockedTimer);
+            setBlocked(true);
           },
           onStateChange: (e) => {
             if (window.YT && e.data === window.YT.PlayerState.PLAYING) {
@@ -785,11 +810,21 @@ function MusicPlayer() {
       });
     }
 
+    // if nothing has come ready within 9s — script blocked by an extension,
+    // or the network can't reach youtube.com at all — stop pretending
+    const blockedTimer = setTimeout(() => {
+      if (!cancelled) setBlocked((b) => (playerRef.current ? b : true));
+    }, 9000);
+
     if (window.YT && window.YT.Player) {
       createPlayer();
     } else {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
+      tag.onerror = () => {
+        clearTimeout(blockedTimer);
+        if (!cancelled) setBlocked(true);
+      };
       document.body.appendChild(tag);
       const prev = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
@@ -800,6 +835,7 @@ function MusicPlayer() {
 
     return () => {
       cancelled = true;
+      clearTimeout(blockedTimer);
     };
   }, []);
 
@@ -848,6 +884,7 @@ function MusicPlayer() {
         onClick={() => skip(-1)}
         disabled={!ready}
         aria-label="pichla gaana"
+        title={blocked ? "YouTube is browser mein block hai" : undefined}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 6h2v12H6zM20 6l-10 6 10 6z" />
@@ -865,8 +902,9 @@ function MusicPlayer() {
           onClick={toggle}
           disabled={!ready}
           aria-label={playing ? "pause" : "play"}
+          title={blocked ? "YouTube is browser mein block hai" : undefined}
         >
-          {playing ? "❚❚" : "▶"}
+          <PlayGlyph playing={playing} />
         </button>
       </div>
       <button
@@ -874,15 +912,20 @@ function MusicPlayer() {
         onClick={() => skip(1)}
         disabled={!ready}
         aria-label="agla gaana"
+        title={blocked ? "YouTube is browser mein block hai" : undefined}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 6h2v12h-2zM4 6l10 6-10 6z" />
         </svg>
       </button>
       <div className="player-text">
-        <div className="player-song">{track.song || "gaane suno"}</div>
+        <div className="player-song">
+          {blocked ? "gaane abhi nahi chal rahe" : track.song || "gaane suno"}
+        </div>
         <div className="player-artist">
-          {track.artist
+          {blocked
+            ? "is browser mein YouTube block hai"
+            : track.artist
             ? `${track.artist} · via YouTube`
             : "via YouTube — plays go to the artist"}
         </div>
@@ -892,6 +935,7 @@ function MusicPlayer() {
         onClick={toggle}
         disabled={!ready}
         aria-label={playing ? "pause" : "play"}
+        title={blocked ? "YouTube is browser mein block hai" : undefined}
         style={
           track.videoId
             ? {
@@ -901,7 +945,7 @@ function MusicPlayer() {
         }
       >
         {!track.videoId && <span className="player-art-note">♪</span>}
-        <span className="player-art-glyph">{playing ? "❚❚" : "▶"}</span>
+        <span className="player-art-glyph"><PlayGlyph playing={playing} size="46%" /></span>
       </button>
     </div>
   );
