@@ -142,7 +142,31 @@ const RAIN_FILTER = "saturate(0.62) brightness(0.8) contrast(0.97)";
 const RAIN_WASH =
   "radial-gradient(circle at 50% 35%, rgba(112,132,150,0.5), rgba(112,132,150,0) 72%)";
 
-const PLAYLIST_ID = "PLa628Dr7zxEg";
+/*
+ * Self-hosted on Cloudflare R2 (public dev URL) rather than a YouTube
+ * embed: in-app browsers (Instagram, Facebook, etc.) sandbox and block
+ * third-party embedded video players, but a plain <audio> tag pulling a
+ * file it controls itself is never affected by that restriction.
+ */
+const AUDIO_BASE = "https://pub-c65502497f7244309440b29af7112c50.r2.dev/songs";
+
+const RAW_TRACKS = [
+  "Bahut Pyaar Karte Hai - Lyrical Video Saajan Madhuri Dixit 90's Best Hindi Romantic Songs.mp3",
+  "Barbaad (1980) Ft. Kishore Kumar full song (Old version) Saiyaara Movie Song #barbaad #saiyaara.mp3",
+  "Dekha Ek Khawab (Lyrics) Silsila Kishore Kumar and Lata Mangeshkar Lyrical Music.mp3",
+  "Hothon Se Chhu Lo Tum (Lyrics) - Jagjit Singh.mp3",
+  "Inteha Ho Gai Slowed Reverb LK lofivibes Lo-Fi Sharaabi Amitabh Bachchan Jaya Prada.mp3",
+  "Jagjit Singh - Hoshwalon Ko Khabar Kya (Lyrics) Sarfarosh - 1999.mp3",
+  "Kiska Rasta Dekhe - Kishore Kumar (Reverb).mp3",
+  "Kitna Haseen Chehra Full Lyrical Video Song Dilwale Ajay Devgan, Raveena Tandon Kumar Sanu.mp3",
+  "Likhe Jo Khat Tujhe with lyrics लख ज खत तझ Kanyadaan Mohammed Rafi Asha P, Shashi Kapoor(1).mp3",
+  "Neele Neele Amber Par Lyrical Video Kishore Kumar Superhit Song Sridevi Kalyanji-Anandji.mp3",
+  "Pal Pal Dil Ke Paas (Lyrics) Blackmail Kishore Kumar Dharmendra & Rakhee Lyrical Music.mp3",
+  "Raah Mein Unse Mulaqat Vijaypath Ajay Devgn, Tabu Kumar Sanu, Alka Yagnik 90's Hit Songs.mp3",
+  "Tere Dar Par Sanam - Vídeo Song Phir Teri Kahani Yaad Aayi Pooja Bhatt, Rahul Roy Kumar Sanu.mp3",
+  "Tum Dil Ki Dhadkan Mein Sunil Shetty, Shilpa Shetty & Mahima.mp3",
+  "Tumsa Koi Pyaara Kumar Sanu Alka Yagnik Khuddar (1994).mp3",
+];
 const LS_TAPRI = "nautapri.tapri";
 const LS_STATE = "nautapri.state";
 const LS_RAIN = "nautapri.rain";
@@ -170,6 +194,11 @@ function parseSongArtist(rawTitle, author) {
   }
   return { song: first, artist: cleanAuthor };
 }
+
+const TRACKS = RAW_TRACKS.map((filename) => ({
+  url: `${AUDIO_BASE}/${encodeURIComponent(filename)}`,
+  ...parseSongArtist(filename.replace(/\.mp3$/i, ""), ""),
+}));
 
 /*
  * Google Maps link for a tapri. `maps` holds the owner-verified share
@@ -732,171 +761,64 @@ function PlayGlyph({ playing, size = "42%" }) {
   );
 }
 
-/*
- * In-app browsers (Instagram, Facebook, TikTok, WeChat, Line, Snapchat)
- * run their own WebView, which routinely blocks embedded YouTube playback
- * outright — no ad blocker involved, and nothing a page can fix. Every one
- * of them ships a native escape hatch (their own "Open in browser" in the
- * ⋯ / share menu), so once detected that's the fix to point at, not a
- * generic "blocked" message that leaves the visitor with no next step.
- */
-function detectInAppBrowser() {
-  if (typeof navigator === "undefined") return null;
-  const ua = navigator.userAgent || "";
-  if (/Instagram/i.test(ua)) return "Instagram";
-  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return "Facebook";
-  if (/BytedanceWebview|musical_ly|TikTok/i.test(ua)) return "TikTok";
-  if (/MicroMessenger/i.test(ua)) return "WeChat";
-  if (/Line\//i.test(ua)) return "Line";
-  if (/Snapchat/i.test(ua)) return "Snapchat";
-  return null;
-}
-
-function isAndroidUA() {
-  if (typeof navigator === "undefined") return false;
-  return /Android/i.test(navigator.userAgent || "");
-}
-
-/*
- * Android's in-app WebViews (Instagram, Facebook, etc. included) honour
- * intent:// URLs — a page can ask the OS to hand the current URL to a
- * named app instead. Firing one at Chrome is the closest thing to an
- * automatic fix: it can jump the visitor out of the sandboxed WebView and
- * into a real browser where playback works, no manual menu needed.
- *
- * iOS has no equivalent — WebKit gives in-app browsers no scheme that can
- * force Safari open, so there the "Open in Browser" message stays the
- * only fix. A sessionStorage guard stops this from firing more than once
- * per tab, in case the redirect fails and the visitor stays put.
- */
-function tryEscapeToChrome() {
-  try {
-    if (sessionStorage.getItem("chromeRedirectTried")) return;
-    sessionStorage.setItem("chromeRedirectTried", "1");
-  } catch {
-    /* no sessionStorage — still worth one attempt */
+/* Fisher-Yates once per mount — a fresh shuffle order every page load */
+function shuffledIndices(n) {
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  const withoutScheme = window.location.href.replace(/^https?:\/\//, "");
-  window.location.href = `intent://${withoutScheme}#Intent;scheme=https;package=com.android.chrome;end`;
+  return arr;
 }
 
 function MusicPlayer() {
-  const containerRef = useRef(null);
-  const playerRef = useRef(null);
-  const shuffledOnce = useRef(false);
+  const audioRef = useRef(null);
+  /* built after mount, client-side only — Math.random() during the server
+     render would pick a different order than the client's hydration pass
+     and desync the two, which React then flags as a hydration mismatch */
+  const orderRef = useRef(null);
+  const posRef = useRef(0);
+  /* whether the visitor actually asked for playback — separates a
+     deliberate pause from the auto-advance on track end, which should
+     keep playing without needing another tap */
+  const wantsPlayingRef = useRef(false);
+
   const [ready, setReady] = useState(false);
-  /* true once we give up waiting for the API — an ad/content blocker, or
-     a network that blocks youtube.com outright, otherwise leaves the
-     controls disabled forever with no explanation */
-  const [blocked, setBlocked] = useState(false);
-  const [inApp] = useState(detectInAppBrowser);
-
-  useEffect(() => {
-    if (inApp && isAndroidUA()) tryEscapeToChrome();
-  }, [inApp]);
-
-  const blockedTitle = !blocked
-    ? undefined
-    : inApp
-    ? `${inApp} ka apna browser gaane nahi chalne deta`
-    : "YouTube is browser mein block hai";
+  const [errored, setErrored] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [track, setTrack] = useState({ song: "", artist: "", videoId: "" });
+  const [trackIdx, setTrackIdx] = useState(null);
   /* the bar shrinks to prev / thumbnail / next once the pointer has left it
      alone for a while; the thumbnail carries play-pause in that state */
   const [compact, setCompact] = useState(false);
   const idleRef = useRef(null);
 
+  const track = trackIdx != null ? TRACKS[trackIdx] : { song: "", artist: "", url: undefined };
+
   useEffect(() => {
-    let cancelled = false;
-
-    function createPlayer() {
-      if (cancelled || !containerRef.current || playerRef.current) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
-        height: "1",
-        width: "1",
-        playerVars: {
-          listType: "playlist",
-          list: PLAYLIST_ID,
-          controls: 0,
-          disablekb: 1,
-          playsinline: 1,
-          shuffle: 1,
-        },
-        events: {
-          onReady: () => {
-            clearTimeout(blockedTimer);
-            setReady(true);
-            try {
-              playerRef.current.setShuffle(true);
-            } catch (e) {}
-          },
-          onError: () => {
-            clearTimeout(blockedTimer);
-            setBlocked(true);
-          },
-          onStateChange: (e) => {
-            if (window.YT && e.data === window.YT.PlayerState.PLAYING) {
-              setPlaying(true);
-              try {
-                const d = playerRef.current.getVideoData();
-                setTrack({
-                  ...parseSongArtist(d?.title, d?.author),
-                  videoId: d?.video_id || "",
-                });
-              } catch (err) {}
-              if (!shuffledOnce.current) {
-                shuffledOnce.current = true;
-                try {
-                  playerRef.current.setShuffle(true);
-                  const n = playerRef.current.getPlaylist()?.length || 0;
-                  if (n > 0) {
-                    playerRef.current.playVideoAt(
-                      Math.floor(Math.random() * n)
-                    );
-                  }
-                } catch (err) {}
-              }
-            } else if (
-              window.YT &&
-              (e.data === window.YT.PlayerState.PAUSED ||
-                e.data === window.YT.PlayerState.ENDED)
-            ) {
-              setPlaying(false);
-            }
-          },
-        },
-      });
-    }
-
-    // if nothing has come ready within 9s — script blocked by an extension,
-    // or the network can't reach youtube.com at all — stop pretending
-    const blockedTimer = setTimeout(() => {
-      if (!cancelled) setBlocked((b) => (playerRef.current ? b : true));
-    }, 9000);
-
-    if (window.YT && window.YT.Player) {
-      createPlayer();
-    } else {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.onerror = () => {
-        clearTimeout(blockedTimer);
-        if (!cancelled) setBlocked(true);
-      };
-      document.body.appendChild(tag);
-      const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (prev) prev();
-        createPlayer();
-      };
-    }
-
-    return () => {
-      cancelled = true;
-      clearTimeout(blockedTimer);
-    };
+    orderRef.current = shuffledIndices(TRACKS.length);
+    posRef.current = 0;
+    setTrackIdx(orderRef.current[0]);
   }, []);
+
+  function playAt(pos) {
+    const order = orderRef.current;
+    if (!order) return;
+    const p = ((pos % order.length) + order.length) % order.length;
+    posRef.current = p;
+    setReady(false);
+    setErrored(false);
+    setTrackIdx(order[p]);
+  }
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || trackIdx == null) return;
+    setErrored(false);
+    a.load();
+    if (wantsPlayingRef.current) {
+      a.play().catch(() => setErrored(true));
+    }
+  }, [trackIdx]);
 
   /* any attention on the bar wakes it and restarts the countdown */
   function poke() {
@@ -911,22 +833,19 @@ function MusicPlayer() {
   }, []);
 
   function toggle() {
-    const p = playerRef.current;
-    if (!p) return;
+    const a = audioRef.current;
+    if (!a) return;
     if (playing) {
-      p.pauseVideo();
+      wantsPlayingRef.current = false;
+      a.pause();
     } else {
-      p.playVideo();
+      wantsPlayingRef.current = true;
+      a.play().catch(() => setErrored(true));
     }
   }
 
   function skip(dir) {
-    const p = playerRef.current;
-    if (!p) return;
-    try {
-      if (dir > 0) p.nextVideo();
-      else p.previousVideo();
-    } catch (e) {}
+    playAt(posRef.current + dir);
   }
 
   return (
@@ -937,13 +856,25 @@ function MusicPlayer() {
       onPointerDown={poke}
       onFocusCapture={poke}
     >
-      <div ref={containerRef} style={{ width: 1, height: 1, overflow: "hidden" }} />
+      <audio
+        ref={audioRef}
+        src={track.url}
+        preload="metadata"
+        onCanPlay={() => setReady(true)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => {
+          wantsPlayingRef.current = true;
+          playAt(posRef.current + 1);
+        }}
+        onError={() => setErrored(true)}
+        style={{ display: "none" }}
+      />
       <button
         className="pbtn-side pbtn-prev"
         onClick={() => skip(-1)}
         disabled={!ready}
         aria-label="pichla gaana"
-        title={blockedTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 6h2v12H6zM20 6l-10 6 10 6z" />
@@ -961,7 +892,7 @@ function MusicPlayer() {
           onClick={toggle}
           disabled={!ready}
           aria-label={playing ? "pause" : "play"}
-          title={blockedTitle}
+          title={errored ? "gaana load nahi hua, phir try karo" : undefined}
         >
           <PlayGlyph playing={playing} />
         </button>
@@ -971,7 +902,6 @@ function MusicPlayer() {
         onClick={() => skip(1)}
         disabled={!ready}
         aria-label="agla gaana"
-        title={blockedTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 6h2v12h-2zM4 6l10 6-10 6z" />
@@ -979,20 +909,14 @@ function MusicPlayer() {
       </button>
       <div className="player-text">
         <div className="player-song">
-          {blocked
-            ? inApp
-              ? `${inApp} mein nahi chalega`
-              : "gaane abhi nahi chal rahe"
-            : track.song || "gaane suno"}
+          {errored ? "gaana load nahi hua" : track.song || "gaane suno"}
         </div>
         <div className="player-artist">
-          {blocked
-            ? inApp
-              ? "••• menu se “Open in Browser” chuno"
-              : "is browser mein YouTube block hai"
+          {errored
+            ? "phir try karo"
             : track.artist
-            ? `${track.artist} · via YouTube`
-            : "via YouTube — plays go to the artist"}
+            ? `${track.artist}`
+            : "chai ke saath"}
         </div>
       </div>
       <button
@@ -1000,16 +924,9 @@ function MusicPlayer() {
         onClick={toggle}
         disabled={!ready}
         aria-label={playing ? "pause" : "play"}
-        title={blockedTitle}
-        style={
-          track.videoId
-            ? {
-                backgroundImage: `url(https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg)`,
-              }
-            : undefined
-        }
+        title={errored ? "gaana load nahi hua, phir try karo" : undefined}
       >
-        {!track.videoId && <span className="player-art-note">♪</span>}
+        <span className="player-art-note">♪</span>
         <span className="player-art-glyph"><PlayGlyph playing={playing} size="46%" /></span>
       </button>
     </div>
