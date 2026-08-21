@@ -732,6 +732,26 @@ function PlayGlyph({ playing, size = "42%" }) {
   );
 }
 
+/*
+ * In-app browsers (Instagram, Facebook, TikTok, WeChat, Line, Snapchat)
+ * run their own WebView, which routinely blocks embedded YouTube playback
+ * outright — no ad blocker involved, and nothing a page can fix. Every one
+ * of them ships a native escape hatch (their own "Open in browser" in the
+ * ⋯ / share menu), so once detected that's the fix to point at, not a
+ * generic "blocked" message that leaves the visitor with no next step.
+ */
+function detectInAppBrowser() {
+  if (typeof navigator === "undefined") return null;
+  const ua = navigator.userAgent || "";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return "Facebook";
+  if (/BytedanceWebview|musical_ly|TikTok/i.test(ua)) return "TikTok";
+  if (/MicroMessenger/i.test(ua)) return "WeChat";
+  if (/Line\//i.test(ua)) return "Line";
+  if (/Snapchat/i.test(ua)) return "Snapchat";
+  return null;
+}
+
 function MusicPlayer() {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -741,6 +761,13 @@ function MusicPlayer() {
      a network that blocks youtube.com outright, otherwise leaves the
      controls disabled forever with no explanation */
   const [blocked, setBlocked] = useState(false);
+  const [inApp] = useState(detectInAppBrowser);
+
+  const blockedTitle = !blocked
+    ? undefined
+    : inApp
+    ? `${inApp} ka apna browser gaane nahi chalne deta`
+    : "YouTube is browser mein block hai";
   const [playing, setPlaying] = useState(false);
   const [track, setTrack] = useState({ song: "", artist: "", videoId: "" });
   /* the bar shrinks to prev / thumbnail / next once the pointer has left it
@@ -884,7 +911,7 @@ function MusicPlayer() {
         onClick={() => skip(-1)}
         disabled={!ready}
         aria-label="pichla gaana"
-        title={blocked ? "YouTube is browser mein block hai" : undefined}
+        title={blockedTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M6 6h2v12H6zM20 6l-10 6 10 6z" />
@@ -902,7 +929,7 @@ function MusicPlayer() {
           onClick={toggle}
           disabled={!ready}
           aria-label={playing ? "pause" : "play"}
-          title={blocked ? "YouTube is browser mein block hai" : undefined}
+          title={blockedTitle}
         >
           <PlayGlyph playing={playing} />
         </button>
@@ -912,7 +939,7 @@ function MusicPlayer() {
         onClick={() => skip(1)}
         disabled={!ready}
         aria-label="agla gaana"
-        title={blocked ? "YouTube is browser mein block hai" : undefined}
+        title={blockedTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M16 6h2v12h-2zM4 6l10 6-10 6z" />
@@ -920,11 +947,17 @@ function MusicPlayer() {
       </button>
       <div className="player-text">
         <div className="player-song">
-          {blocked ? "gaane abhi nahi chal rahe" : track.song || "gaane suno"}
+          {blocked
+            ? inApp
+              ? `${inApp} mein nahi chalega`
+              : "gaane abhi nahi chal rahe"
+            : track.song || "gaane suno"}
         </div>
         <div className="player-artist">
           {blocked
-            ? "is browser mein YouTube block hai"
+            ? inApp
+              ? "••• menu se “Open in Browser” chuno"
+              : "is browser mein YouTube block hai"
             : track.artist
             ? `${track.artist} · via YouTube`
             : "via YouTube — plays go to the artist"}
@@ -935,7 +968,7 @@ function MusicPlayer() {
         onClick={toggle}
         disabled={!ready}
         aria-label={playing ? "pause" : "play"}
-        title={blocked ? "YouTube is browser mein block hai" : undefined}
+        title={blockedTitle}
         style={
           track.videoId
             ? {
