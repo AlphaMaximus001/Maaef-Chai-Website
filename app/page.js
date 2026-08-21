@@ -752,6 +752,34 @@ function detectInAppBrowser() {
   return null;
 }
 
+function isAndroidUA() {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent || "");
+}
+
+/*
+ * Android's in-app WebViews (Instagram, Facebook, etc. included) honour
+ * intent:// URLs — a page can ask the OS to hand the current URL to a
+ * named app instead. Firing one at Chrome is the closest thing to an
+ * automatic fix: it can jump the visitor out of the sandboxed WebView and
+ * into a real browser where playback works, no manual menu needed.
+ *
+ * iOS has no equivalent — WebKit gives in-app browsers no scheme that can
+ * force Safari open, so there the "Open in Browser" message stays the
+ * only fix. A sessionStorage guard stops this from firing more than once
+ * per tab, in case the redirect fails and the visitor stays put.
+ */
+function tryEscapeToChrome() {
+  try {
+    if (sessionStorage.getItem("chromeRedirectTried")) return;
+    sessionStorage.setItem("chromeRedirectTried", "1");
+  } catch {
+    /* no sessionStorage — still worth one attempt */
+  }
+  const withoutScheme = window.location.href.replace(/^https?:\/\//, "");
+  window.location.href = `intent://${withoutScheme}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
 function MusicPlayer() {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -762,6 +790,10 @@ function MusicPlayer() {
      controls disabled forever with no explanation */
   const [blocked, setBlocked] = useState(false);
   const [inApp] = useState(detectInAppBrowser);
+
+  useEffect(() => {
+    if (inApp && isAndroidUA()) tryEscapeToChrome();
+  }, [inApp]);
 
   const blockedTitle = !blocked
     ? undefined
